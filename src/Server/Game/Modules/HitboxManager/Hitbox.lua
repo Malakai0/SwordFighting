@@ -6,23 +6,32 @@ local Maid = require(Knit.Util.Maid);
 local Hitbox = {}
 Hitbox.__index = Hitbox
 
-function Hitbox.new(Mechanism: Instance, DetectionMode: number)
+function Hitbox.new(Player: Player, Mechanism: Instance, Params: RaycastParams)
 
-    local RaycastHitbox = Knit.Shared.RaycastHitbox;
+    local Cast = Knit.Shared.ClientCast;
 
     local self = setmetatable({
         MoveKey = nil;
         ID = game:GetService("HttpService"):GenerateGUID();
-        Object = RaycastHitbox.new(Mechanism);
+        Player = Player;
+        Mechanism = Mechanism;
+        Params = Params or RaycastParams.new();
         Connections = {};
     }, Hitbox)
 
     self._maid = Maid.new();
 
-    local DetectionNumber = math.clamp(tonumber(DetectionMode) or 1, 1, 3);
-    self.Object.DetectionMode = (DetectionMode and DetectionNumber) or RaycastHitbox.DetectionMode.Default;
+    return self
+end
 
-    self.Object.OnHit:Connect(function(hitPart, humanoid, _, group)
+function Hitbox:HitStart(Key, ...)
+    local Cast = Knit.Shared.ClientCast;
+    self.MoveKey = Key;
+
+    self.Object = Cast.new(self.Mechanism, self.Params)
+    self.Object:SetOwner(self.Player)
+
+    self._maid:GiveTask(self.Object.Collided:Connect(function(hitPart, humanoid, _, group)
         local Removed = 0;
         for i,v in next, self.Connections do
             if (type(v.Function) ~= 'function') then
@@ -36,21 +45,17 @@ function Hitbox.new(Mechanism: Instance, DetectionMode: number)
             coroutine.wrap(v.Function)(self.MoveKey, hitPart, humanoid, group)
         end
         Removed = nil;
-    end)
+    end));
 
-    self._maid:GiveTask(self.Object.OnHit[1]);
-
-    return self
-end
-
-function Hitbox:HitStart(Key, ...)
-    self.MoveKey = Key;
-    return self.Object:HitStart(...)
+    return self.Object:Start(...)
 end
 
 function Hitbox:HitStop(...)
     self.MoveKey = nil;
-    return self.Object:HitStop(...)
+    if (self.Object) then
+        self.Object:Stop(...)
+        self.Object = nil
+    end
 end
 
 function Hitbox:OnHit(func)

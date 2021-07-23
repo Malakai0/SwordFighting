@@ -3,9 +3,7 @@ local Effects = {}
 local attackerInfo = function(ProvidedAttacker)
     return {
         Player = ProvidedAttacker;
-        NPC = not ProvidedAttacker:IsA('Player') or
-            (ProvidedAttacker.Parent == workspace.Entities and 
-            game:GetService("Players"):GetPlayerFromCharacter(ProvidedAttacker) == nil);
+        NPC = ProvidedAttacker.Parent == workspace.Entities.NPC;
     }
 end
 

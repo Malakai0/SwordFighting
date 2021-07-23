@@ -9,6 +9,7 @@ end
 
 function connection:Connect(Listener)
 	self[1] = Listener
+	return self[1];
 end
 
 function connection:Fire(...)

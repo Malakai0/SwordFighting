@@ -1,8 +1,7 @@
 local Cooldown = {}
 
-shared.Cooldowns = shared.Cooldowns or {}
-
 if (not shared.Cooldowns) then
+    shared.Cooldowns = {}
     game:GetService("RunService").Heartbeat:Connect(function()
         for i,v in next, shared.Cooldowns do
             if (tick() >= v) then
@@ -24,6 +23,12 @@ end
 
 function Cooldown:ForceRemove(Key)
     shared.Cooldowns[tostring(Key)] = nil;
+end
+
+function Cooldown:Wait(s)
+    local Key = game:GetService("HttpService"):GenerateGUID()
+    self:Set(Key, s);
+    repeat game:GetService('RunService').Heartbeat:Wait() until (not self:Working(Key))
 end
 
 return Cooldown

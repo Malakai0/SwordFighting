@@ -11,7 +11,7 @@ local function GrabModules()
 end
 
 local function waitFrames(n)
-    return wait((1/60)*n)
+    return Knit.Shared.Cooldown:Wait((1/60)*n)
 end
 
 local Sword = {}
@@ -55,11 +55,11 @@ function Sword:NormalAttack()
 
     Replicator:Animate(self.CurrentOwner, 'Sword/Slash', Data.AnimationStates.Active)
 
-    waitFrames(11) -- Until actual slash begins
+    waitFrames(5) -- Until actual slash begins
 
     self.Hitbox:HitStart('NormalAttack')
 
-    waitFrames(10) -- How long the slash is
+    waitFrames(20) -- How long the slash is, with conpensation.
 
     self.Hitbox:HitStop()
 end
@@ -263,7 +263,7 @@ function Sword:InitializeSword()
     end
 
     if (self.Hitbox) then
-        self.Hitbox:Destroy()
+        self.Hitbox:Stop(true)
         self.Hitbox = nil;
     end
 
@@ -287,7 +287,7 @@ function Sword:InitializeSword()
     self:Unequip(false)
 
     local _,_,_,HitboxManager = GrabModules()
-    self.Hitbox = HitboxManager.CreateHitboxForInstance(self.Instance.Katana.Hitbox);
+    self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.Hitbox);
 
     self.Hitbox:OnHit(function(...)
         self:OnHit(...);
