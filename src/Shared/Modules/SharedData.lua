@@ -30,4 +30,26 @@ SharedData.AnimationStates = {
     Inactive = 1;
 }
 
+SharedData.BaseDamageValues = {
+    ['NormalAttack'] = {
+        ['Head'] = 40;
+        ['Torso'] = 30;
+        ['Arm'] = 25;
+        ['Leg'] = 25;
+    };
+}
+
+function SharedData.GetLimbTypeFromInstance(Limb: Instance)
+    local LimbName = tostring(Limb.Name):lower()
+    return  LimbName:find('arm') and 'Arm' or
+            LimbName:find('leg') and 'Leg' or
+            LimbName:find('head') and 'Head' or
+            LimbName:find('torso') and 'Torso' or
+            LimbName:find('rootpart') and 'Torso';
+end
+
+function SharedData.GenerateHitData(Key, Attacker, Recipient, Damage)
+
+end
+
 return SharedData

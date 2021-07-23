@@ -159,7 +159,7 @@ ________________________________________________________________________________
 local SHOW_DEBUG_RAY_LINES: boolean = true
 
 -- Allow RaycastModule to write to the output
-local SHOW_OUTPUT_MESSAGES: boolean = true
+local SHOW_OUTPUT_MESSAGES: boolean = false
 
 -- The tag name. Used for cleanup.
 local DEFAULT_COLLECTION_TAG_NAME: string = "_RaycastHitboxV4Managed"

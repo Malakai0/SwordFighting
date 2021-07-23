@@ -9,7 +9,6 @@ ClientSword.Tag = "Sword"
 
 function ClientSword.new(instance: Model)
     local self = setmetatable({
-        Equipped = false;
         Connections = {};
     }, ClientSword)
     self._maid = Maid.new()
@@ -35,11 +34,15 @@ function ClientSword:ActivateController()
     local Input = Knit.Controllers.InputController;
     local SwordService = Knit.GetService('SwordService');
 
+    local Keybinds = {
+        ['Q'] = 'ToggleEquip';
+        ['LMB'] = 'NormalAttack';
+    }
+
     local BeganConnection = Input:Began(function(Key)
 
-        if (Input:CheckInput(Key, 'Q')) then
-            SwordService:ToggleEquipPromise():Await();
-            self.Equipped = not self.Equipped;
+        if (Keybinds[Input:GrabInput(Key)]) then
+            SwordService:MovePromise(Keybinds[Input:GrabInput(Key)]):Await();
         end
 
     end)

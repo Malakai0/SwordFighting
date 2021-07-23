@@ -18,12 +18,14 @@ for _,v in next, game:GetService('ReplicatedStorage').Modules:GetChildren() do
 end
 
 local function CharacterAdded(Character: Model)
-    repeat wait() until Character:IsDescendantOf(workspace)
+    repeat wait() until Character:IsDescendantOf(workspace) and Character:FindFirstChild('Torso') and Character:FindFirstChild('Right Arm')
 
     Character.Parent = workspace.Entities;
     local Sword = game:GetService('ServerStorage').Assets.Sword:Clone();
     Sword.Parent = Character;
     Sword:SetAttribute('Owner', game:GetService("Players"):GetPlayerFromCharacter(Character).UserId)
+
+    Knit.Modules.HitboxManager.ApplyHitboxToCharacter(Character);
 end
 
 local function PlayerAdded(Player: Player)

@@ -24,7 +24,7 @@ function MainController:KnitStart()
 
         if (#Split > 1) then
             for I = 1, #Split do
-                if (I == #Split - 1) then
+                if (I == #Split) then
                     break;
                 end;
 

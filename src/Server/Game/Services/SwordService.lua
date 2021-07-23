@@ -6,19 +6,38 @@ local SwordService = Knit.CreateService {
     Client = {};
 }
 
-function SwordService.Client:ToggleEquip(Player)
+local ValidMoves = {
+    'ToggleEquip';
+    'NormalAttack';
+}
+
+function SwordService.Client:Move(Player, MoveKey, ...)
     local Sword = self.Server:FindSwordForPlayer(Player)
     if (not Sword) then
         return
     end
 
+    if not (type(MoveKey) == 'string') then
+        return
+    end
+
+    if (not table.find(ValidMoves, MoveKey)) then
+        return
+    end
+
     local Object = Component.FromTag('Sword'):GetFromInstance(Sword);
 
-    if (Object.Equipped) then
-        Object:Unequip(true);
-    else
-        Object:Equip(true);
+    if (Object[MoveKey]) then
+        Object[MoveKey](Object, unpack(self.Server:GenerateArgs(Player, MoveKey, ...)))
     end
+end
+
+function SwordService:GenerateArgs(Player, MoveKey, ...)
+    local Args = {}
+
+    --// Logic
+
+    return Args;
 end
 
 function SwordService:FindSwordForPlayer(Player)

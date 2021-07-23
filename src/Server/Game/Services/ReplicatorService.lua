@@ -18,12 +18,22 @@ function ReplicatorService:FireAll(Key, ...)
 end
 
 --// Custom functions
-function ReplicatorService:Animate(Client, AnimationName, State)
-    self:Fire(Client, 'Animator', AnimationName, State);
+
+local function Generate(Key, ClientKey)
+    ClientKey = ClientKey or Key;
+    ReplicatorService[Key] = function(self, Client, ...)
+        self:Fire(Client, ClientKey, ...);
+    end
+
+    ReplicatorService[Key .. 'All'] = function(self, ...)
+        self:FireAll(ClientKey, ...)
+    end
 end
 
-function ReplicatorService:AnimateAll(AnimationName, State)
-    self:FireAll('Animator', AnimationName, State);
-end
+--// Animate
+Generate('Animate', 'Animator');
+
+--// Client Effects
+Generate('Effect');
 
 return ReplicatorService

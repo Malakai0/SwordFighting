@@ -83,7 +83,7 @@ end
 -- @param task An item to clean
 -- @treturn number taskId
 function Maid:GiveTask(task)
-	assert(task, "Task cannot be false or nil")
+	assert(task ~= nil and task ~= false, "Task cannot be false or nil")
 
 	local taskId = (#self._tasks + 1)
 	self[taskId] = task

@@ -4,6 +4,21 @@ local InputController = Knit.CreateController { Name = "InputController" }
 
 local UIS = game:GetService("UserInputService")
 
+function InputController:GrabInput(Key: InputObject)
+    local Code, Type = Key.KeyCode, Key.UserInputType
+    if (Type == Enum.UserInputType.MouseButton1) then
+        return 'LMB'
+    elseif (Type == Enum.UserInputType.MouseButton2) then
+        return 'RMB'
+    elseif (Type == Enum.UserInputType.MouseButton3) then
+        return 'MMB';
+    elseif (Type == Enum.UserInputType.Keyboard or tostring(Type):find('Gamepad')) then
+        return (tostring(Code):sub(#"Enum.KeyCode."+1));
+    elseif (Type == Enum.UserInputType.MouseMovement) then
+        return 'MouseMovement';
+    end
+end
+
 function InputController:CheckInput(Key: InputObject, Expected)
     local Code, Type = Key.KeyCode, Key.UserInputType
     if (Type == Enum.UserInputType.MouseButton1) then

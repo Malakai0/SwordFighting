@@ -6,7 +6,12 @@ local Maid = require(Knit.Util.Maid)
 local function GrabModules()
     return Knit.Services.ReplicatorService,
            Knit.Shared.SharedData,
-           Knit.Shared.Welding
+           Knit.Shared.Welding,
+           Knit.Modules.HitboxManager
+end
+
+local function waitFrames(n)
+    return wait((1/60)*n)
 end
 
 local Sword = {}
@@ -18,7 +23,12 @@ Sword.Tag = "Sword"
 function Sword.new(instance)
     local self = setmetatable({
         CurrentOwner = nil;
+        Hitbox = nil;
         Equipped = false;
+
+        TemporaryMoveInfo = {
+            SwingIndex = 0;
+        };
     }, Sword)
     self._maid = Maid.new()
     return self
@@ -27,7 +37,39 @@ end
 --// Cool shit
 
 function Sword:NormalAttack()
-    -- TODO.
+    if (not self:CheckCharacter()) then
+        return
+    end
+
+    if (not self.Equipped) then
+        return
+    end
+
+    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('NormalAttack'))) then
+        return
+    end
+
+    Knit.Shared.Cooldown:Set(self:GetCoolKey('NormalAttack'), 1)
+
+    local Replicator, Data, _, _ = GrabModules()
+
+    Replicator:Animate(self.CurrentOwner, 'Sword/Slash', Data.AnimationStates.Active)
+
+    waitFrames(11) -- Until actual slash begins
+
+    self.Hitbox:HitStart('NormalAttack')
+
+    waitFrames(10) -- How long the slash is
+
+    self.Hitbox:HitStop()
+end
+
+function Sword:ToggleEquip()
+    if (self.Equipped) then
+        self:Unequip(true);
+    else
+        self:Equip(true);
+    end
 end
 
 function Sword:Equip(playAnimations)
@@ -38,10 +80,16 @@ function Sword:Equip(playAnimations)
     if (self.Equipped == true) then
         return
     end
+
+    if (Knit.Shared.Cooldown:Working('EQUIP')) then
+        return
+    end
+
+    Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
     
     self.Equipped = true;
 
-    local Replicator, Data, Welding = GrabModules()
+    local Replicator, Data, Welding, _ = GrabModules()
 
     local Offsets = Data.Offsets;
 
@@ -72,9 +120,15 @@ function Sword:Unequip(playAnimations)
         return
     end
 
+    if (Knit.Shared.Cooldown:Working('EQUIP')) then
+        return
+    end
+
+    Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
+
     self.Equipped = false;
 
-    local Replicator, Data, Welding = GrabModules()
+    local Replicator, Data, Welding, _ = GrabModules()
 
     local Offsets = Data.Offsets;
 
@@ -99,6 +153,40 @@ function Sword:Unequip(playAnimations)
 end
 
 --// Back end stuff
+
+function Sword:GetCoolKey(Key)
+    if not self.CurrentOwner then return end;
+    return self.CurrentOwner.UserId .. ':' .. tostring(Key)
+end
+
+function Sword:OnHit(MoveKey: string, HitPart: BasePart, Humanoid: Humanoid, Group: string)
+
+    local IsHitbox = HitPart:GetAttribute('Hitbox') == true;
+    if (not IsHitbox) then return end;
+
+    local Replicator, Data, _, _ = GrabModules()
+    local LimbType = Data.GetLimbTypeFromInstance(HitPart)
+    local Damage = LimbType and Data.BaseDamageValues[MoveKey][LimbType]
+    if (not Damage) then return end;
+
+    local Recipient = Players:GetPlayerFromCharacter(Humanoid.Parent) or Humanoid.Parent;
+    local newHitData = Data.GenerateHitData(MoveKey, self.CurrentOwner, Recipient, Damage);
+
+    local HurtFunc = function()
+        Humanoid:TakeDamage(newHitData.Damage)
+
+        Replicator:EffectAll(MoveKey, self.CurrentOwner, Recipient, HitPart, newHitData.Damage);
+    end
+
+    local ServerMove = Knit.Modules.ServerMove;
+    if (ServerMove[MoveKey]) then
+        ServerMove[MoveKey](HurtFunc, self.CurrentOwner, Recipient, newHitData.Damage)
+    else
+        HurtFunc()
+    end;
+
+    HurtFunc = nil;
+end
 
 function Sword:CheckCharacter()
     if (not self.CurrentOwner) then
@@ -153,6 +241,8 @@ function Sword:DeinitializeSword(Player: Player)
     local RightArm = Character:FindFirstChild('Right Arm')
     local Torso = Character:FindFirstChild('Torso')
 
+    self.Instance.Katana.Hitbox:SetNetworkOwnershipAuto();
+
     -- Welds broken already.
     if (not RightArm or not Torso) then
         return;
@@ -160,7 +250,7 @@ function Sword:DeinitializeSword(Player: Player)
     
     --// Attempt to remove all possible welds.
     --// If this gets big I'll make it more neat.
-    local _, _, Welding = GrabModules()
+    local _, _, Welding, _ = GrabModules()
     Welding.RemoveWeld(Torso, 'Sheath')
     Welding.RemoveWeld(Torso, 'Sword')
     Welding.RemoveWeld(RightArm, 'Hitbox')
@@ -170,6 +260,11 @@ function Sword:InitializeSword()
 
     if (not self:CheckCharacter()) then
         return;
+    end
+
+    if (self.Hitbox) then
+        self.Hitbox:Destroy()
+        self.Hitbox = nil;
     end
 
     local Player = self.CurrentOwner
@@ -188,7 +283,18 @@ function Sword:InitializeSword()
         self:SetOwnerId(0);
     end))
 
+    self:Equip(false)
     self:Unequip(false)
+
+    local _,_,_,HitboxManager = GrabModules()
+    self.Hitbox = HitboxManager.CreateHitboxForInstance(self.Instance.Katana.Hitbox);
+
+    self.Hitbox:OnHit(function(...)
+        self:OnHit(...);
+    end)
+
+    self.Instance.Katana.Hitbox:SetNetworkOwner(self.CurrentOwner);
+
 end
 
 function Sword:OwnerChanged()
@@ -224,6 +330,10 @@ end
 
 function Sword:Destroy()
     self._maid:Destroy()
+    if (self.Hitbox) then
+        self.Hitbox:Destroy()
+        self.Hitbox = nil;
+    end
 end
 
 
