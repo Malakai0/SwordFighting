@@ -6,7 +6,7 @@ local Maid = require(Knit.Util.Maid);
 local Hitbox = {}
 Hitbox.__index = Hitbox
 
-function Hitbox.new(Player: Player, Mechanism: Instance, Params: RaycastParams)
+function Hitbox.new(Player: Player, Mechanism: Instance)
 
     local Cast = Knit.Shared.ClientCast;
 
@@ -15,7 +15,7 @@ function Hitbox.new(Player: Player, Mechanism: Instance, Params: RaycastParams)
         ID = game:GetService("HttpService"):GenerateGUID();
         Player = Player:IsA('Player') and Player;
         Mechanism = Mechanism;
-        Params = Params or RaycastParams.new();
+        Params = RaycastParams.new();
         Connections = {};
     }, Hitbox)
 
@@ -35,9 +35,10 @@ function Hitbox:HitStart(Key, HitCool, ...)
 
     self.Object.Collided:Connect(function(RaycastResult)
         local hitPart = RaycastResult.Instance;
+
         if (not hitPart) then return end;
 
-        local Character = hitPart:FindFirstAncestorOfClass('Model')
+        local Character = hitPart.Link.Value:FindFirstAncestorOfClass('Model')
 
         if (not Character) then return end;
 
@@ -61,6 +62,11 @@ function Hitbox:HitStart(Key, HitCool, ...)
         end
         Removed = nil;
     end);
+
+    local Params: RaycastParams = self.Params
+    Params.FilterType = Enum.RaycastFilterType.Whitelist
+    Params.FilterDescendantsInstances = workspace.Entities.Hitboxes:GetChildren();
+    self.Params = Params
 
     return self.Object:Start(...)
 end

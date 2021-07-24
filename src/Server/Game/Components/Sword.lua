@@ -327,16 +327,15 @@ function Sword:InitializeSword()
     self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.Hitbox);
 
     self._maid:GiveTask(self.Signals.HitStop:Connect(function()
-        for i,v in next, self.TemporaryMoveInfo.HitCools do
-            Knit.Shared.Cooldown:ForceRemove(v);
-            v = nil
-            i = nil
+        for i = 1, #self.TemporaryMoveInfo.HitCools do
+            Knit.Shared.Cooldown:ForceRemove(self.TemporaryMoveInfo.HitCools[i]);
+            table.remove(self.TemporaryMoveInfo.HitCools, 1)
         end
     end))
 
     self.Hitbox:OnHit(function(MoveKey, CollidePart, HitCool)
         if (CollidePart:GetAttribute('Hitbox') == true) then
-            local CharacterModel = CollidePart:FindFirstAncestorOfClass('Model'); -- We already verified this exists.
+            local CharacterModel = CollidePart.Link.Value:FindFirstAncestorOfClass('Model'); -- We already verified this exists.
             if (Knit.Shared.Cooldown:Working(self:GetDamageCoolKey(CharacterModel, MoveKey))) then
                 return
             end
@@ -344,7 +343,7 @@ function Sword:InitializeSword()
             Knit.Shared.Cooldown:Set(self:GetDamageCoolKey(CharacterModel, MoveKey), HitCool);
             table.insert(self.TemporaryMoveInfo.HitCools, self:GetDamageCoolKey(CharacterModel, MoveKey));
 
-            self:OnHit(MoveKey, CollidePart.Parent);
+            self:OnHit(MoveKey, CollidePart.Link.Value);
         end
     end)
 

@@ -20,9 +20,15 @@ function HitboxManager.ApplyHitboxToCharacter(Character: Model)
         if (Part:IsA('BasePart') and Character:FindFirstChild(Part.Name)) then
             local TargetPart = Character[Part.Name];
 
+            local Link = Instance.new('ObjectValue')
+            Link.Name = 'Link'
+
             local HitboxPart = Part:Clone()
             HitboxPart.Name = HitboxManager.HitboxName;
-            HitboxPart.Parent = TargetPart;
+            Link.Value = TargetPart
+            Link.Parent = HitboxPart
+
+            HitboxPart.Parent = workspace.Entities.Hitboxes;
             Welding.WeldParts('Hitbox', TargetPart, HitboxPart);
         end
     end
