@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 
 local Knit = require(game:GetService("ReplicatedStorage").Knit)
 local Maid = require(Knit.Util.Maid)
+local Signal = require(Knit.Util.Signal);
 
 local function GrabModules()
     return Knit.Services.ReplicatorService,
@@ -10,8 +11,12 @@ local function GrabModules()
            Knit.Modules.HitboxManager
 end
 
+local function FramesToSeconds(n)
+    return (1/60) * n
+end
+
 local function waitFrames(n)
-    return Knit.Shared.Cooldown:Wait((1/60)*n)
+    return Knit.Shared.Cooldown:Wait(FramesToSeconds(n))
 end
 
 local Sword = {}
@@ -31,8 +36,15 @@ function Sword.new(instance)
 
         Active = false;
 
+        Signals = {
+            HitStart = Signal.new();
+            HitStop = Signal.new();
+            OnHit = Signal.new();
+        };
+
         TemporaryMoveInfo = {
             SwingIndex = 0;
+            HitCools = {};
         };
     }, Sword)
     self._maid = Maid.new()
@@ -62,11 +74,13 @@ function Sword:NormalAttack()
 
     waitFrames(10) -- Until actual slash begins
 
-    self.Hitbox:HitStart('NormalAttack', 1)
+    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(20))
+    self.Signals.HitStart:Fire('NormalAttack')
 
     waitFrames(20) -- How long the slash is, with conpensation.
 
     self.Hitbox:HitStop()
+    self.Signals.HitStop:Fire()
 end
 
 function Sword:ToggleEquip()
@@ -312,6 +326,14 @@ function Sword:InitializeSword()
     local _,_,_,HitboxManager = GrabModules()
     self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.Hitbox);
 
+    self._maid:GiveTask(self.Signals.HitStop:Connect(function()
+        for i,v in next, self.TemporaryMoveInfo.HitCools do
+            Knit.Shared.Cooldown:ForceRemove(v);
+            v = nil
+            i = nil
+        end
+    end))
+
     self.Hitbox:OnHit(function(MoveKey, CollidePart, HitCool)
         if (CollidePart:GetAttribute('Hitbox') == true) then
             local CharacterModel = CollidePart:FindFirstAncestorOfClass('Model'); -- We already verified this exists.
@@ -320,6 +342,7 @@ function Sword:InitializeSword()
             end
 
             Knit.Shared.Cooldown:Set(self:GetDamageCoolKey(CharacterModel, MoveKey), HitCool);
+            table.insert(self.TemporaryMoveInfo.HitCools, self:GetDamageCoolKey(CharacterModel, MoveKey));
 
             self:OnHit(MoveKey, CollidePart.Parent);
         end

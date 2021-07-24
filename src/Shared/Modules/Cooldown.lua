@@ -4,6 +4,12 @@ if (not shared.Cooldowns) then
     shared.Cooldowns = {}
     game:GetService("RunService").Heartbeat:Connect(function()
         for i,v in next, shared.Cooldowns do
+            if (not type(v) == 'number') then
+                shared.Cooldowns[i] = nil;
+                v = nil
+                i = nil
+                continue
+            end
             if (tick() >= v) then
                 shared.Cooldowns[i] = nil;
                 v = nil;
