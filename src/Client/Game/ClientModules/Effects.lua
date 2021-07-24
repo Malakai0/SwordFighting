@@ -3,7 +3,7 @@ local Effects = {}
 local attackerInfo = function(ProvidedAttacker)
     return {
         Player = ProvidedAttacker;
-        NPC = ProvidedAttacker.Parent == workspace.Entities.NPC;
+        NPC = ProvidedAttacker.Parent == workspace.Entities.NPCs;
     }
 end
 

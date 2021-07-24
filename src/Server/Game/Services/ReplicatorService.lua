@@ -22,6 +22,9 @@ end
 local function Generate(Key, ClientKey)
     ClientKey = ClientKey or Key;
     ReplicatorService[Key] = function(self, Client, ...)
+        if (Client.Parent == workspace.Entities.NPCs) then
+            return Knit.Shared.ClientFunctions[Key](Client, ...);
+        end
         self:Fire(Client, ClientKey, ...);
     end
 

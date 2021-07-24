@@ -27,8 +27,14 @@ function SwordService.Client:Move(Player, MoveKey, ...)
 
     local Object = Component.FromTag('Sword'):GetFromInstance(Sword);
 
+    if (Object.Active) then
+        return
+    end
+
     if (Object[MoveKey]) then
+        Object.Active = true;
         Object[MoveKey](Object, unpack(self.Server:GenerateArgs(Player, MoveKey, ...)))
+        Object.Active = false;
     end
 end
 

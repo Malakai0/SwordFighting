@@ -22,9 +22,14 @@ Sword.Tag = "Sword"
 
 function Sword.new(instance)
     local self = setmetatable({
+        UID = game:GetService("HttpService"):GenerateGUID();
+
         CurrentOwner = nil;
+        NPC = false;
         Hitbox = nil;
         Equipped = false;
+
+        Active = false;
 
         TemporaryMoveInfo = {
             SwingIndex = 0;
@@ -55,9 +60,9 @@ function Sword:NormalAttack()
 
     Replicator:Animate(self.CurrentOwner, 'Sword/Slash', Data.AnimationStates.Active)
 
-    waitFrames(5) -- Until actual slash begins
+    waitFrames(10) -- Until actual slash begins
 
-    self.Hitbox:HitStart('NormalAttack')
+    self.Hitbox:HitStart('NormalAttack', 1)
 
     waitFrames(20) -- How long the slash is, with conpensation.
 
@@ -93,7 +98,7 @@ function Sword:Equip(playAnimations)
 
     local Offsets = Data.Offsets;
 
-    local Character = self.CurrentOwner.Character;
+    local Character = self.NPC or self.CurrentOwner.Character;
     local Torso = Character:FindFirstChild('Torso')
     local RightArm = Character:FindFirstChild('Right Arm')
 
@@ -132,7 +137,7 @@ function Sword:Unequip(playAnimations)
 
     local Offsets = Data.Offsets;
 
-    local Character = self.CurrentOwner.Character;
+    local Character = self.NPC or self.CurrentOwner.Character;
     local Torso = Character:FindFirstChild('Torso')
     local RightArm = Character:FindFirstChild('Right Arm')
 
@@ -155,19 +160,21 @@ end
 --// Back end stuff
 
 function Sword:GetCoolKey(Key)
-    if not self.CurrentOwner then return end;
-    return self.CurrentOwner.UserId .. ':' .. tostring(Key)
+    return self.UID .. ':' .. tostring(Key)
 end
 
-function Sword:OnHit(MoveKey: string, HitPart: BasePart, Humanoid: Humanoid, Group: string)
+function Sword:GetDamageCoolKey(CharacterModel, Key)
+    return string.format("%s:%s:%s", self.UID, CharacterModel:GetAttribute('UID'), Key);
+end
 
-    local IsHitbox = HitPart:GetAttribute('Hitbox') == true;
-    if (not IsHitbox) then return end;
-
+function Sword:OnHit(MoveKey: string, HitPart: BasePart)
     local Replicator, Data, _, _ = GrabModules()
     local LimbType = Data.GetLimbTypeFromInstance(HitPart)
     local Damage = LimbType and Data.BaseDamageValues[MoveKey][LimbType]
     if (not Damage) then return end;
+
+    local Humanoid = HitPart.Parent:FindFirstChild('Humanoid')
+    if (not Humanoid) then return end;
 
     local Recipient = Players:GetPlayerFromCharacter(Humanoid.Parent) or Humanoid.Parent;
     local newHitData = Data.GenerateHitData(MoveKey, self.CurrentOwner, Recipient, Damage);
@@ -194,7 +201,7 @@ function Sword:CheckCharacter()
     end;
 
     local Success = true;
-    local Character = self.CurrentOwner.Character;
+    local Character = self.NPC or self.CurrentOwner.Character;
 
     if (not Character) then
         self:SetOwnerId(0);
@@ -228,16 +235,18 @@ function Sword:DetectCharacter()
     local Player = Players:GetPlayerFromCharacter(Character)
     if (Player) then
         self:SetOwnerId(Player.UserId)
+    elseif (Character:GetAttribute('NPC') == true) then
+        self:SetOwnerId(Character:GetAttribute('UID'));
+        self.NPC = Character
     end
 end
 
-function Sword:DeinitializeSword(Player: Player)
+function Sword:DeinitializeSword(Character)
 
-    if (not Player.Character) then
+    if (not Character) then
         return;
     end
 
-    local Character = Player.Character;
     local RightArm = Character:FindFirstChild('Right Arm')
     local Torso = Character:FindFirstChild('Torso')
 
@@ -254,6 +263,14 @@ function Sword:DeinitializeSword(Player: Player)
     Welding.RemoveWeld(Torso, 'Sheath')
     Welding.RemoveWeld(Torso, 'Sword')
     Welding.RemoveWeld(RightArm, 'Hitbox')
+
+    self.NPC = false;
+    self.Equipped = false;
+
+    if (self.Hitbox) then
+        self.Hitbox:Destroy()
+        self.Hitbox = nil;
+    end
 end
 
 function Sword:InitializeSword()
@@ -263,13 +280,19 @@ function Sword:InitializeSword()
     end
 
     if (self.Hitbox) then
-        self.Hitbox:Stop(true)
+        self.Hitbox:Destroy()
         self.Hitbox = nil;
     end
 
-    local Player = self.CurrentOwner
+    local Character;
 
-    local Character = Player.Character;
+    if (self.NPC) then
+        Character = self.NPC
+    else
+        local Player = self.CurrentOwner
+        Character = Player.Character;
+    end
+
     local Humanoid = Character:FindFirstChildOfClass('Humanoid')
     local RightArm = Character:FindFirstChild('Right Arm')
     local Torso = Character:FindFirstChild('Torso')
@@ -289,20 +312,39 @@ function Sword:InitializeSword()
     local _,_,_,HitboxManager = GrabModules()
     self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.Hitbox);
 
-    self.Hitbox:OnHit(function(...)
-        self:OnHit(...);
+    self.Hitbox:OnHit(function(MoveKey, CollidePart, HitCool)
+        if (CollidePart:GetAttribute('Hitbox') == true) then
+            local CharacterModel = CollidePart:FindFirstAncestorOfClass('Model'); -- We already verified this exists.
+            if (Knit.Shared.Cooldown:Working(self:GetDamageCoolKey(CharacterModel, MoveKey))) then
+                return
+            end
+
+            Knit.Shared.Cooldown:Set(self:GetDamageCoolKey(CharacterModel, MoveKey), HitCool);
+
+            self:OnHit(MoveKey, CollidePart.Parent);
+        end
     end)
 
-    self.Instance.Katana.Hitbox:SetNetworkOwner(self.CurrentOwner);
+    if (not self.NPC) then
+        self.Instance.Katana.Hitbox:SetNetworkOwner(self.CurrentOwner);
+    end
 
 end
 
 function Sword:OwnerChanged()
     local CurrentOwner = self.Instance:GetAttribute("Owner");
-    local Player = Players:GetPlayerByUserId(CurrentOwner)
+    local Player = type(CurrentOwner) == 'number' and Players:GetPlayerByUserId(CurrentOwner)
+    
+    if (not Player and self.Instance.Parent:GetAttribute('NPC') == true) then
+        if (self.Instance.Parent.Humanoid.Health <= 0) then
+            return
+        end
+        self:DetectCharacter()
+        Player = self.Instance.Parent;
+    end
 
     if (self.CurrentOwner) then
-        self:DeinitializeSword(self.CurrentOwner)
+        self:DeinitializeSword(self.NPC or self.CurrentOwner.Character)
     end
 
     self.CurrentOwner = Player;

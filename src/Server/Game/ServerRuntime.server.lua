@@ -20,7 +20,9 @@ end
 local function CharacterAdded(Character: Model)
     repeat wait() until Character:IsDescendantOf(workspace) and Character:FindFirstChild('Torso') and Character:FindFirstChild('Right Arm')
 
+    Character:SetAttribute('UID', game:GetService('HttpService'):GenerateGUID())
     Character.Parent = workspace.Entities.Players;
+
     local Sword = game:GetService('ServerStorage').Assets.Sword:Clone();
     Sword.Parent = Character;
     Sword:SetAttribute('Owner', game:GetService("Players"):GetPlayerFromCharacter(Character).UserId)

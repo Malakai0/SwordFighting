@@ -12,7 +12,7 @@ PingRemote.OnClientInvoke = function() end
 
 local ClientCast = {}
 local Settings = {
-	AttachmentName = 'DmgPoint', -- The name of the attachment that this network will raycast from
+	AttachmentName = 'HitPoint', -- The name of the attachment that this network will raycast from
 	DebugAttachmentName = 'ClientCast-Debug', -- The name of the debug trail attachment
 
 	DebugMode = false, -- DebugMode visualizes the rays, from last to current position

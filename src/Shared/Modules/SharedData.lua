@@ -8,7 +8,7 @@ local CommonValues = {
     SheathAngle = Angle(Rad(0), Rad(-90), Rad(-15));
 }
 
---// These offsets are kind of ugly, but it's col.
+--// These offsets are kind of ugly, but it's cool.
 SharedData.Offsets = {
 
     -- Right Arm -> Hitbox - Equipped
@@ -21,7 +21,7 @@ SharedData.Offsets = {
     ['SwordSheath'] = Cfr(1, 0, 0);
 
     -- Torso -> Hitbox - Unequipped
-    ['TorsoSword'] = Cfr(-1, -0.9, 0.5) * CommonValues.SheathAngle;
+    ['TorsoSword'] = Cfr(-1, -0.763, 0.5) * CommonValues.SheathAngle;
 
 }
 
@@ -40,7 +40,7 @@ SharedData.BaseDamageValues = {
 }
 
 function SharedData.GetLimbTypeFromInstance(Limb: Instance)
-    local LimbName = tostring(Limb.Name):lower()
+    local LimbName = Limb.Name:lower()
     return  LimbName:find('arm') and 'Arm' or
             LimbName:find('leg') and 'Leg' or
             LimbName:find('head') and 'Head' or
@@ -49,7 +49,13 @@ function SharedData.GetLimbTypeFromInstance(Limb: Instance)
 end
 
 function SharedData.GenerateHitData(Key, Attacker, Recipient, Damage)
-
+    --// No logic for now.
+    return {
+        Attacker = Attacker;
+        Recipient = Recipient;
+        Damage = Damage;
+        MoveKey = Key;
+    }
 end
 
 return SharedData

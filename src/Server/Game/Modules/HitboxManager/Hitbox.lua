@@ -13,7 +13,7 @@ function Hitbox.new(Player: Player, Mechanism: Instance, Params: RaycastParams)
     local self = setmetatable({
         MoveKey = nil;
         ID = game:GetService("HttpService"):GenerateGUID();
-        Player = Player;
+        Player = Player:IsA('Player') and Player;
         Mechanism = Mechanism;
         Params = Params or RaycastParams.new();
         Connections = {};
@@ -24,14 +24,29 @@ function Hitbox.new(Player: Player, Mechanism: Instance, Params: RaycastParams)
     return self
 end
 
-function Hitbox:HitStart(Key, ...)
+function Hitbox:HitStart(Key, HitCool, ...)
     local Cast = Knit.Shared.ClientCast;
     self.MoveKey = Key;
 
     self.Object = Cast.new(self.Mechanism, self.Params)
-    self.Object:SetOwner(self.Player)
+    if self.Player then
+        self.Object:SetOwner(self.Player)
+    end
 
-    self._maid:GiveTask(self.Object.Collided:Connect(function(hitPart, humanoid, _, group)
+    self.Object.Collided:Connect(function(RaycastResult)
+        local hitPart = RaycastResult.Instance;
+        if (not hitPart) then return end;
+
+        local Character = hitPart:FindFirstAncestorOfClass('Model')
+
+        if (not Character) then return end;
+
+        local TargetPlayer = game:GetService("Players"):GetPlayerFromCharacter(Character)
+
+        if (TargetPlayer and TargetPlayer == self.Player) then
+            return
+        end
+
         local Removed = 0;
         for i,v in next, self.Connections do
             if (type(v.Function) ~= 'function') then
@@ -42,10 +57,10 @@ function Hitbox:HitStart(Key, ...)
                 Removed += 1;
                 continue
             end
-            coroutine.wrap(v.Function)(self.MoveKey, hitPart, humanoid, group)
+            coroutine.wrap(v.Function)(self.MoveKey, hitPart, HitCool)
         end
         Removed = nil;
-    end));
+    end);
 
     return self.Object:Start(...)
 end
