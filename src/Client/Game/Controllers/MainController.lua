@@ -7,11 +7,12 @@ function MainController:KnitStart()
     local Replicator = Knit.Controllers.Replicator;
 
     Replicator:AddEvent('Animator', function(Name, State)
+        Knit.Shared.ClientFunctions.Animator(Knit.Player.Character, Name, State);
+    end)
 
-        local Character = Knit.Player.Character;
-
-        Knit.Shared.ClientFunctions.Animator(Character, Name, State);
-
+    --MoveKey, self.CurrentOwner, Recipient, HitPart, newHitData.Damage
+    Replicator:AddEvent('Effect', function(MoveKey, Attacker, Recipient, HitPart, Damage)
+        Knit.Modules.Effects.DoEffect(MoveKey, Attacker, Recipient, HitPart, Damage)
     end)
 
 end

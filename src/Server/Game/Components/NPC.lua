@@ -18,11 +18,7 @@ function NPC.new(instance)
 end
 
 function NPC:Update()
-    if (math.floor(tick()) % 2 == 0) then
-        self.Sword:Equip(false)
-    else
-        self.Sword:Unequip(false)
-    end
+    
 end
 
 function NPC:Init()

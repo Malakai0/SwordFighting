@@ -32,6 +32,7 @@ SharedData.AnimationStates = {
 
 SharedData.BaseDamageValues = {
     ['NormalAttack'] = {
+        ['CriticalDamage'] = 40;
         ['Head'] = 40;
         ['Torso'] = 30;
         ['Arm'] = 25;
