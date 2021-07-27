@@ -24,6 +24,19 @@ Sword.__index = Sword
 
 Sword.Tag = "Sword"
 
+local SwordSlashTimings = {
+    Start = {
+        10,
+        10,
+        0
+    };
+
+    Stop = {
+        20,
+        20,
+        30
+    };
+}
 
 function Sword.new(instance)
     local self = setmetatable({
@@ -43,7 +56,7 @@ function Sword.new(instance)
         };
 
         TemporaryMoveInfo = {
-            SwingIndex = 0;
+            SwingIndex = 1;
             HitCools = {};
         };
     }, Sword)
@@ -53,7 +66,7 @@ end
 
 --// Cool shit
 
-function Sword:NormalAttack()
+function Sword:NormalAttack(ignoreCool)
     if (not self:CheckCharacter()) then
         return
     end
@@ -62,7 +75,7 @@ function Sword:NormalAttack()
         return
     end
 
-    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('NormalAttack'))) then
+    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('NormalAttack')) and (not ignoreCool)) then
         return
     end
 
@@ -70,17 +83,20 @@ function Sword:NormalAttack()
 
     local Replicator, Data, _, _ = GrabModules()
 
-    Replicator:Animate(self.CurrentOwner, 'Sword/Slash', Data.AnimationStates.Active)
+    local SwingIndex = self.TemporaryMoveInfo.SwingIndex;
+    Replicator:Animate(self.CurrentOwner, 'Sword/Slash'..SwingIndex, Data.AnimationStates.Active)
 
-    waitFrames(10) -- Until actual slash begins
+    waitFrames(SwordSlashTimings.Start[SwingIndex]) -- Until actual slash begins
 
-    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(20))
+    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(SwordSlashTimings.Stop[SwingIndex]))
     self.Signals.HitStart:Fire('NormalAttack')
 
-    waitFrames(20) -- How long the slash is, with conpensation.
+    waitFrames(SwordSlashTimings.Stop[SwingIndex]) -- How long the slash is, with conpensation.
 
     self.Hitbox:HitStop()
     self.Signals.HitStop:Fire()
+
+    self.TemporaryMoveInfo.SwingIndex = SwingIndex == 3 and 1 or SwingIndex+1;
 end
 
 function Sword:ToggleEquip()
@@ -91,7 +107,7 @@ function Sword:ToggleEquip()
     end
 end
 
-function Sword:Equip(playAnimations)
+function Sword:Equip(playAnimations, ignoreCool)
     if (not self:CheckCharacter()) then
         return
     end;
@@ -100,11 +116,9 @@ function Sword:Equip(playAnimations)
         return
     end
 
-    if (Knit.Shared.Cooldown:Working('EQUIP')) then
+    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('EQUIP')) and (not ignoreCool)) then
         return
     end
-
-    Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
     
     self.Equipped = true;
 
@@ -121,16 +135,18 @@ function Sword:Equip(playAnimations)
         Replicator:Animate(self.CurrentOwner, 'Sword/Equip', Data.AnimationStates.Active)
     end
 
-    wait(playAnimations and 0 or 0) -- Until hand is on handle.
+    waitFrames(playAnimations and 10 or 0) -- Until hand is on handle.
 
     Welding.RemoveWeld(self.Instance.Katana.Hitbox, 'Sheath');
     Welding.WeldParts('Sheath', Torso, self.Instance.Sheath, Offsets.TorsoSheath)
 
     Welding.RemoveWeld(Torso, 'Sword')
     Welding.WeldParts('Sword', RightArm, self.Instance.Katana.Hitbox, Offsets.RightArmSword)
+
+    Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
 end
 
-function Sword:Unequip(playAnimations)
+function Sword:Unequip(playAnimations, ignoreCool)
     if (not self:CheckCharacter()) then
         return
     end;
@@ -139,11 +155,9 @@ function Sword:Unequip(playAnimations)
         return
     end
 
-    if (Knit.Shared.Cooldown:Working('EQUIP')) then
+    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('EQUIP')) and (not ignoreCool)) then
         return
     end
-
-    Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
 
     self.Equipped = false;
 
@@ -160,15 +174,17 @@ function Sword:Unequip(playAnimations)
         Replicator:Animate(self.CurrentOwner, 'Sword/Unequip', Data.AnimationStates.Active)
     end
 
-    wait(playAnimations and 0 or 0) -- Until sword is in sheath.
+    waitFrames(playAnimations and 10 or 0) -- Until sword is in sheath.
 
     Welding.RemoveWeld(RightArm, 'Sword')
     Welding.WeldParts('Sword', Torso, self.Instance.Katana.Hitbox, Offsets.TorsoSword)
 
-    wait(playAnimations and 0 or 0) -- Until sheath is back to original position.
+    waitFrames(playAnimations and 0 or 0) -- Until sheath is back to original position.
 
     Welding.RemoveWeld(Torso, 'Sheath')
     Welding.WeldParts('Sheath', self.Instance.Katana.Hitbox, self.Instance.Sheath, Offsets.SwordSheath)
+
+    Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
 end
 
 --// Back end stuff
@@ -193,10 +209,10 @@ function Sword:OnHit(MoveKey: string, HitPart: BasePart)
     local Recipient = Players:GetPlayerFromCharacter(Humanoid.Parent) or Humanoid.Parent;
     local newHitData = Data.GenerateHitData(MoveKey, self.CurrentOwner, Recipient, Damage);
 
-    local HurtFunc = function()
-        Humanoid:TakeDamage(newHitData.Damage)
+    local HurtFunc = function(customDamage: number)
+        Humanoid:TakeDamage(customDamage or newHitData.Damage)
 
-        Replicator:EffectAll(MoveKey, self.CurrentOwner, Recipient, HitPart, newHitData.Damage);
+        Replicator:EffectAll(MoveKey, self.CurrentOwner, Recipient, HitPart, customDamage or newHitData.Damage);
     end
 
     local ServerMove = Knit.Modules.ServerMove;
@@ -320,8 +336,8 @@ function Sword:InitializeSword()
         self:SetOwnerId(0);
     end))
 
-    self:Equip(false)
-    self:Unequip(false)
+    self:Equip(false, true)
+    self:Unequip(false, true)
 
     local _,_,_,HitboxManager = GrabModules()
     self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.Hitbox);

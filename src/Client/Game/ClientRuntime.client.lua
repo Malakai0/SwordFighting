@@ -21,6 +21,9 @@ Knit.Start():Then(function()
     print('Client started!')
     Component.Auto(script.Parent.ClientComponents)
 
+    Knit.Shared.Preloader:AddArrayToQueue(game:GetService("ReplicatedStorage").Animations:GetDescendants())
+    Knit.Shared.Preloader:Preload()
+
     print(string.format((
         '\nWelcome to %s! Running on version %s.\n' ..
         'Exploiting is strictly prohibited, if caught exploiting, you will be permanently banned.\n' ..
