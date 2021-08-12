@@ -55,8 +55,7 @@ function ClientSword:DeactivateController()
     self:Reset()
 
     for i = 1,#self.Connections do
-        self.Connections[i]:Disconnect()
-        self.Connections[i] = nil;
+        self.Connections[i]:Disconnect();
         table.remove(self.Connections, 1)
     end
     self.Connections = {};
