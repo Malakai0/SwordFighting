@@ -1,5 +1,6 @@
 {
     "Lua.diagnostics.disable": [
-        "emmy-lua"
+        "emmy-lua",
+        "set-for-state"
     ]
 }

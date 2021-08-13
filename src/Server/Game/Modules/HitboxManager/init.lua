@@ -16,26 +16,26 @@ function HitboxManager.ApplyHitboxToCharacter(Character: Model)
     local Humanoid: Humanoid = Character:WaitForChild'Humanoid';
 
     local Welding = Knit.Shared.Welding;
+    local HashLib = Knit.Shared.HashLib;
 
     local HitboxModel = game:GetService("ServerStorage").Assets.Hitbox;
 
     local HitboxParts = {};
 
+    local CharacterUID = Character:GetAttribute("UID");
+
+    if (not CharacterUID) then
+        return warn('Invalid instance for hitbox: ' .. Character.Name);
+    end
+
     for _, Part: BasePart in next, HitboxModel:GetChildren() do
         if (Part:IsA('BasePart') and Character:FindFirstChild(Part.Name)) then
             local TargetPart = Character[Part.Name];
 
-            local Link = Instance.new('ObjectValue')
-            Link.Name = 'Link'
-
             local HitboxPart = Part:Clone()
             HitboxPart.Name = HitboxManager.HitboxName;
-            Link.Value = TargetPart
-            Link.Parent = HitboxPart
-        
-            Link:GetPropertyChangedSignal('Value'):Connect(function()
-                HitboxPart:Destroy()
-            end)
+
+            HitboxPart:SetAttribute('Identifier', string.format("%s.%s", CharacterUID, Part.Name));
 
             HitboxPart.Parent = workspace.Entities.Hitboxes;
             Welding.WeldParts('Hitbox', TargetPart, HitboxPart);

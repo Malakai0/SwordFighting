@@ -38,7 +38,17 @@ function Hitbox:HitStart(Key, HitCool, ...)
 
         if (not hitPart) then return end;
 
-        local Character = hitPart.Link.Value:FindFirstAncestorOfClass('Model')
+        local CharacterUID, PartName = table.unpack(string.split(hitPart:GetAttribute('Identifier'), '.'));
+
+        local Character = (function(...)
+            for _, Folder: Folder in next, {...} do
+                for _, Character: Model in next, Folder:GetChildren() do
+                    if (Character:GetAttribute('UID') == CharacterUID) then
+                        return Character;
+                    end
+                end
+            end
+        end)(workspace.Entities.Players, workspace.Entities.NPCs)
 
         if (not Character) then return end;
 
@@ -58,7 +68,9 @@ function Hitbox:HitStart(Key, HitCool, ...)
                 Removed += 1;
                 continue
             end
-            coroutine.wrap(v.Function)(self.MoveKey, hitPart, HitCool)
+            coroutine.wrap(v.Function)(
+                self.MoveKey, Character:FindFirstChild(PartName), HitCool
+            )
         end
         Removed = nil;
     end);
@@ -68,13 +80,15 @@ function Hitbox:HitStart(Key, HitCool, ...)
     Params.FilterDescendantsInstances = workspace.Entities.Hitboxes:GetChildren();
     self.Params = Params
 
+    self.Object.RaycastParams = Params;
+
     return self.Object:Start(...)
 end
 
 function Hitbox:HitStop(...)
     self.MoveKey = nil;
     if (self.Object) then
-        self.Object:Stop(...)
+        self.Object:Destroy()
         self.Object = nil
     end
 end

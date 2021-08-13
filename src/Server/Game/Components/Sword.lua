@@ -350,17 +350,17 @@ function Sword:InitializeSword()
     end))
 
     self.Hitbox:OnHit(function(MoveKey, CollidePart, HitCool)
-        if (CollidePart:GetAttribute('Hitbox') == true) then
-            local CharacterModel = CollidePart.Link.Value:FindFirstAncestorOfClass('Model'); -- We already verified this exists.
-            if (Knit.Shared.Cooldown:Working(self:GetDamageCoolKey(CharacterModel, MoveKey))) then
-                return
-            end
+        if (not CollidePart) then return end;
 
-            Knit.Shared.Cooldown:Set(self:GetDamageCoolKey(CharacterModel, MoveKey), HitCool);
-            table.insert(self.TemporaryMoveInfo.HitCools, self:GetDamageCoolKey(CharacterModel, MoveKey));
-
-            self:OnHit(MoveKey, CollidePart.Link.Value);
+        local CharacterModel = CollidePart.Parent;
+        if (Knit.Shared.Cooldown:Working(self:GetDamageCoolKey(CharacterModel, MoveKey))) then
+            return
         end
+
+        Knit.Shared.Cooldown:Set(self:GetDamageCoolKey(CharacterModel, MoveKey), HitCool);
+        table.insert(self.TemporaryMoveInfo.HitCools, self:GetDamageCoolKey(CharacterModel, MoveKey));
+
+        self:OnHit(MoveKey, CollidePart);
     end)
 
     if (not self.NPC) then
