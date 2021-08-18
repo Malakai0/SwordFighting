@@ -1,6 +1,10 @@
 local Knit = require(game:GetService("ReplicatedStorage").Knit)
 local Component = require(Knit.Util.Component)
 
+local RemoteHandler = require(script.RemoteHandler)
+RemoteHandler.Initialize();
+shared.RemoteHandler = RemoteHandler;
+
 Knit.AddServices(script.Parent.Services);
 
 Knit.Modules = {}

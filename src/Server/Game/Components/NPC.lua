@@ -56,7 +56,7 @@ function NPC:Init()
     Knit.Modules.HitboxManager.ApplyHitboxToCharacter(self.Instance)
 
     repeat task.wait() until self.Instance:IsDescendantOf(workspace);
-    task.wait()
+    task.wait(.5)
     self.InitialPosition = self.Instance:GetPrimaryPartCFrame()
 
     self._maid:GiveTask(game:GetService("RunService").Heartbeat:Connect(function()

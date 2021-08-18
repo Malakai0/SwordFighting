@@ -30,14 +30,15 @@ function Hitbox:HitStart(Key, HitCool, ...)
     local Cast = Knit.Modules.ClientCast;
     self.MoveKey = Key;
 
-    self.Object = Cast.new(self.Mechanism, self.Params)
+    if (not self.Object) then
+        self.Object = Cast.new(self.Mechanism, self.Params)
+    end
+    
     if self.Player then
         self.Object:SetOwner(self.Player)
     end
 
-    self.Object.Collided:Connect(function(RaycastResult)
-        local hitPart: BasePart = RaycastResult.Instance;
-
+    self.Object.Collided:Connect(function(hitPart, Position)
         if (not hitPart) then return end;
 
         local CharacterUID, PartName = table.unpack(string.split(hitPart:GetAttribute('Identifier'), '.'));
@@ -102,8 +103,7 @@ end
 function Hitbox:HitStop(...)
     self.MoveKey = nil;
     if (self.Object) then
-        self.Object:Destroy()
-        self.Object = nil
+        self.Object:Stop()
     end
 end
 
