@@ -1,5 +1,7 @@
 -- Hitbox module
 
+local idCache = {}
+
 local Knit = require(game:GetService("ReplicatedStorage").Knit)
 local Maid = require(Knit.Util.Maid);
 
@@ -34,7 +36,7 @@ function Hitbox:HitStart(Key, HitCool, ...)
     end
 
     self.Object.Collided:Connect(function(RaycastResult)
-        local hitPart = RaycastResult.Instance;
+        local hitPart: BasePart = RaycastResult.Instance;
 
         if (not hitPart) then return end;
 
@@ -57,6 +59,18 @@ function Hitbox:HitStart(Key, HitCool, ...)
         if (TargetPlayer and TargetPlayer == self.Player) then
             return
         end
+
+        hitPart.Color = Color3.new(1, 0, 0)
+        hitPart.Transparency = 0.3;
+        local id = math.random()
+        idCache[hitPart] = id
+
+        task.delay(0.5, function()
+            if (idCache[hitPart] == id) then
+                hitPart.Transparency = 1;
+                idCache[hitPart] = nil;
+            end
+        end)
 
         local Removed = 0;
         for i,v in next, self.Connections do

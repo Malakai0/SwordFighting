@@ -35,12 +35,13 @@ end
 ---@return nil
 function Preloader:Preload(Callback)
     for i = 1, #self.Queue do
-        ContentProvider:PreloadAsync({self.Queue[1]}, function(Content, Status)
+        local Item = self.Queue[1];
+        ContentProvider:PreloadAsync({Item}, function(Content, Status)
             if (Callback) then
-                Callback(self.Queue[1], Status)
+                Callback(Item, Status)
             end
-            table.remove(self.Queue, 1);
         end)
+        table.remove(self.Queue, 1);
     end
 end
 

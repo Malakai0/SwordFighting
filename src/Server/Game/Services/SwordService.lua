@@ -38,6 +38,15 @@ function SwordService.Client:Move(Player, MoveKey, ...)
     end
 end
 
+function SwordService:GiveSword(Player: Player)
+    local Character = Player.Character;
+    if (not Character) then return end;
+
+    local Sword = game:GetService('ServerStorage').Assets.Sword:Clone();
+    Sword.Parent = Character;
+    Sword:SetAttribute('Owner', Player.UserId)
+end
+
 function SwordService:GenerateArgs(Player, MoveKey, ...)
     local Args = {}
 
