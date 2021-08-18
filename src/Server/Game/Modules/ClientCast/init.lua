@@ -328,7 +328,7 @@ function ClientCaster:SetObject(Object)
 	self._DescendantConnection = self.Owner == nil and Object.DescendantAdded:Connect(self._OnDamagePointAdded) or nil
 
 	local ReplicationConnection = self._ReplicationConnection
-	coroutine.wrap(function()
+	task.spawn(function()
 		if ReplicationConnection then
 			local Remainder = time() - self._Created
 			if Remainder < 1 then
@@ -339,7 +339,7 @@ function ClientCaster:SetObject(Object)
 				Object = Object
 			})
 		end
-	end)()
+	end)
 end
 function ClientCaster:GetObject()
 	return self.Object
@@ -350,14 +350,14 @@ function ClientCaster:EditRaycastParams(RaycastParameters)
 	if ReplicationConnection then
 		local Remainder = time() - self._Created
 
-		coroutine.wrap(function()
+		task.spawn(function()
 			if Remainder < 1 then
 				wait(1 - Remainder)
 			end
 			ReplicationConnection:Update({
 				RaycastParams = RaycastParameters
 			})
-		end)()
+		end)
 	end
 end
 function ClientCaster:SetRecursive(Bool)
@@ -454,7 +454,6 @@ function ClientCast.new(Object, RaycastParameters, NetworkOwner)
 			Humanoid = {},
 			Any = {}
 		},
-		_ToClean = {},
 		_Created = time(),
 		_ReplicationConnection = false,
 		_Debug = Settings.DebugMode,

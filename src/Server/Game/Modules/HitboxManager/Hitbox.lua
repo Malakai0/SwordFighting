@@ -10,7 +10,7 @@ Hitbox.__index = Hitbox
 
 function Hitbox.new(Player: Player, Mechanism: Instance)
 
-    local Cast = Knit.Shared.ClientCast;
+    local Cast = Knit.Modules.ClientCast;
 
     local self = setmetatable({
         MoveKey = nil;
@@ -27,7 +27,7 @@ function Hitbox.new(Player: Player, Mechanism: Instance)
 end
 
 function Hitbox:HitStart(Key, HitCool, ...)
-    local Cast = Knit.Shared.ClientCast;
+    local Cast = Knit.Modules.ClientCast;
     self.MoveKey = Key;
 
     self.Object = Cast.new(self.Mechanism, self.Params)
