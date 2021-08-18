@@ -12,6 +12,16 @@ Functions.Animator = function(Character, Name, State)
         return;
     end
 
+    if (not CachedAnimations[Character]) then
+        CachedAnimations[Character] = {}
+    end
+
+    for x,c in next, CachedAnimations do
+        if x == nil or x.Parent == nil then
+            c = nil;
+        end
+    end
+
     local Split = string.split(Name, '/');
     local Folder = AnimationFolder;
     local LastName = '';
@@ -41,10 +51,10 @@ Functions.Animator = function(Character, Name, State)
     end
 
     local Animator: Animator = Humanoid:FindFirstChild('Animator');
-    local AnimationTrack: AnimationTrack = CachedAnimations[Animation]
+    local AnimationTrack: AnimationTrack = CachedAnimations[Character][Animation]
     if (not AnimationTrack) then
         AnimationTrack = Animator:LoadAnimation(Animation)
-        CachedAnimations[Animation] = AnimationTrack
+        CachedAnimations[Character][Animation] = AnimationTrack
     end
 
     local Priority = AnimationTrack.Priority

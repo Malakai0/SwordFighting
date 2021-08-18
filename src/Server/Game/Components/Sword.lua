@@ -207,6 +207,7 @@ function Sword:OnHit(MoveKey: string, HitPart: BasePart)
 
     local Humanoid = HitPart.Parent:FindFirstChild('Humanoid')
     if (not Humanoid) then return end;
+    if (Humanoid.Health <= 0) then return end;
 
     local Recipient = Players:GetPlayerFromCharacter(Humanoid.Parent) or Humanoid.Parent;
     local newHitData = Data.GenerateHitData(MoveKey, self.CurrentOwner, Recipient, Damage);
