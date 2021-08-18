@@ -16,6 +16,7 @@ end
 
 ClientCast.Settings = Settings
 ClientCast.InitiatedCasters = {}
+ClientCast.WhitelistedIds = {};
 
 local RunService = game:GetService('RunService')
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
@@ -25,6 +26,7 @@ local PingRemote = ReplicatedStorage:FindFirstChild('ClientCast-Ping')
 
 local Signal = require(script.Signal)
 local Wait = require(script.RBXWait)
+local RCHB = require(script.RaycastHitboxV4);
 
 local function SafeRemoteInvoke(RemoteFunction, Player, MaxYield)
 	local ThreadResumed = false
@@ -104,6 +106,8 @@ function ReplicationBase:Start()
 	local Owner = self.Owner
 	AssertClass(Owner, 'Player')
 
+	ClientCast.WhitelistedIds[self.Caster._UniqueId] = Owner;
+
 	ReplicationRemote:FireClient(Owner, 'Start', {
 		Owner = Owner,
 		Object = self.Object,
@@ -111,16 +115,38 @@ function ReplicationBase:Start()
 		RaycastParams = SerializeParams(self.RaycastParams),
 		Id = self.Caster._UniqueId
 	})
-
-	self.Connection = ReplicationRemote.OnServerEvent:Connect(function(Player, Code, RaycastResult, Humanoid)
-		if Player == Owner and IsValid(RaycastResult) and (Code == 'Any' or Code == 'Humanoid') then
-			Humanoid = Code == 'Humanoid' and Humanoid or nil
-			for Event in next, self.Caster._CollidedEvents[Code] do
-				task.spawn(Event.Invoke, Event, RaycastResult, Humanoid)
-			end
-		end
-	end)
 end
+
+shared.RemoteHandler.AddConnection('Replication', function(Player, UniqueId, Code, Part, Position, Humanoid)
+	if (not Player.Character) then return end;
+
+	if ClientCast.WhitelistedIds[UniqueId] == Player and (Code == 'Any' or Code == 'Humanoid') and (ClientCast.InitiatedCasters[UniqueId]) then
+		local Caster;
+
+		if (typeof(Position) ~= 'Vector3int16' or typeof(Part) ~= 'Instance') then return end;
+		if (not Part:IsA('BasePart')) then return end;
+
+		local PlayerPosition = Player.Character.HumanoidRootPart.Position;
+		local Extra = 10; --// Give em lenience!
+		local Object = ClientCast.InitiatedCasters[UniqueId];
+
+		local Given = Vector3.new(Position.X, Position.Y, Position.Z);
+		local GivenPosition = (PlayerPosition + Given);
+
+		local GivenDistance = ((PlayerPosition - GivenPosition).Magnitude + Object.Object.Size.Magnitude)
+		local ActualDistance = ((PlayerPosition - Object.Object.Position).Magnitude + Object.Object.Size.Magnitude + Extra)
+
+		if (GivenDistance > ActualDistance) then
+			return
+		end
+		
+		Humanoid = Code == 'Humanoid' and Humanoid or nil
+		for Event in next, Object._CollidedEvents[Code] do
+			task.spawn(Event.Invoke, Event, Part, GivenPosition, Humanoid)
+		end
+	end
+end)
+
 function ReplicationBase:Update(AdditionalData)
 	local Data = {
 		Owner = self.Owner,
@@ -140,6 +166,8 @@ function ReplicationBase:Stop(Destroy)
 		Id = self.Caster._UniqueId
 	})
 
+	ClientCast.WhitelistedIds[self.Caster._UniqueId] = nil;
+
 	local ReplicationConn = self.Connection
 	if ReplicationConn then
 		ReplicationConn:Disconnect()
@@ -158,6 +186,8 @@ end
 function Replication.new(Player, Object, RaycastParameters, Caster)
 	AssertClass(Player, 'Player', 'Unexpected owner in \'ReplicationBase.Stop\' (%s expected, got %s)')
 	assert(type(Caster) == 'table' and Caster._Class == 'Caster', 'Unexpect argument #4 - Caster expected')
+	
+	ClientCast.WhitelistedIds[Caster._UniqueId] = Player;
 
 	return setmetatable({
 		Owner = Player,
@@ -213,16 +243,30 @@ local CollisionBaseName = {
 function ClientCaster:Start()
 	self.Disabled = false
 
+	self.Raycast.RaycastParams = self.RaycastParams;
+
+	self.RaycastConnection = self.Raycast.OnHit:Connect(function(part, humanoid, raycastResult, groupName)
+		if raycastResult then
+			for CollisionEvent in next, self._CollidedEvents.Any do
+				CollisionEvent:Invoke(raycastResult.Part, raycastResult.Position)
+			end
+	
+			local ModelAncestor = part:FindFirstAncestorOfClass('Model')
+			local Humanoid = ModelAncestor and ModelAncestor:FindFirstChildOfClass('Humanoid')
+			if Humanoid then
+				for HumanoidEvent in next, self._CollidedEvents.Humanoid do
+					HumanoidEvent:Invoke(raycastResult.Part, raycastResult.Position, Humanoid)
+				end
+			end
+		end
+	end)
+
 	local ReplicationConn = self._ReplicationConnection
 	if ReplicationConn then
 		ReplicationConn:Start()
 	end
-
-	ClientCast.InitiatedCasters[self] = {}
-	if self._Debug then
-		self:StartDebug()
-	end
 end
+
 function ClientCaster:Destroy()
 	local ReplicationConn = self._ReplicationConnection
 	if ReplicationConn then
@@ -230,17 +274,8 @@ function ClientCaster:Destroy()
 		ReplicationConn:Destroy()
 	end
 
-	self._DescendantConnection:Disconnect()
-	for _, DebugAttachment in next, self._DebugTrails do
-		DebugAttachment:Destroy()
-	end
-
-	ClientCast.InitiatedCasters[self] = nil
-
-	self.RaycastParams = nil
-	self.Object = nil
-	self.Owner = nil
-	self.Disabled = true
+	self.Raycast:Destroy()
+	ClientCast.InitiatedCasters[self._UniqueId] = nil;
 
 	for Prop, Val in next, self do
 		if type(Val) == 'function' then
@@ -248,15 +283,16 @@ function ClientCaster:Destroy()
 		end
 	end
 end
+
 function ClientCaster:Stop()
 	local OldConn = self._ReplicationConnection
 	if OldConn then
 		OldConn:Stop()
 	end
 
-	ClientCast.InitiatedCasters[self] = nil
+	self.Raycast:HitStop();
+
 	self.Disabled = true
-	self:DisableDebug()
 end
 function ClientCaster:SetOwner(NewOwner)
 	local Remainder = time() - self._Created
@@ -275,7 +311,7 @@ function ClientCaster:SetOwner(NewOwner)
 		end
 		self.Owner = NewOwner
 
-		if ClientCast.InitiatedCasters[self] then
+		if ClientCast.InitiatedCasters[self._UniqueId] then
 			if NewOwner ~= nil and ReplConn then
 				ReplConn:Start()
 			end
@@ -304,42 +340,6 @@ function ClientCaster:GetPing()
 	end
 
 	return SafeRemoteInvoke(PingRemote, self.Owner, self._ExhaustionTime)
-end
-function ClientCaster:SetObject(Object)
-	self.Object = Object
-
-	for _, DebugAttachment in next, self._DebugTrails do
-		DebugAttachment:Destroy()
-	end
-	table.clear(self._DebugTrails)
-	table.clear(self._DamagePoints)
-
-	local OldConnection = self._DescendantConnection
-	if OldConnection then
-		OldConnection:Disconnect()
-		self._DescendantConnection = nil
-	end
-
-	if self.Owner == nil then
-		for _, Descendant in next, Object:GetDescendants() do
-			self._OnDamagePointAdded(Descendant)
-		end
-	end
-	self._DescendantConnection = self.Owner == nil and Object.DescendantAdded:Connect(self._OnDamagePointAdded) or nil
-
-	local ReplicationConnection = self._ReplicationConnection
-	task.spawn(function()
-		if ReplicationConnection then
-			local Remainder = time() - self._Created
-			if Remainder < 1 then
-				wait(1 - Remainder)
-			end
-
-			ReplicationConnection:Update({
-				Object = Object
-			})
-		end
-	end)
 end
 function ClientCaster:GetObject()
 	return self.Object
@@ -391,59 +391,23 @@ function ClientCaster:__index(Index)
 	return (type(Value) == 'function' and not Settings.FunctionDebug) and coroutine.wrap(Value) or Value
 end
 
-local UniqueId = 0
 local function GenerateId()
-	UniqueId += 1
-	return UniqueId
+	local Ids = game:GetService("HttpService"):GenerateGUID(false):split('-');
+	return Ids[#Ids];
 end
+
 function ClientCast.new(Object, RaycastParameters, NetworkOwner)
 	IsValidOwner(NetworkOwner)
 	AssertType(Object, 'Instance', 'Unexpected argument #2 to \'CastObject.new\' (%s expected, got %s)')
 	AssertType(RaycastParameters, 'RaycastParams', 'Unexpected argument #3 to \'CastObject.new\' (%s expected, got %s)')
 	local CasterObject
 
-	local DebugTrails = {}
-	local DamagePoints = {}
-
-	local function OnDamagePointAdded(Attachment)
-		if Attachment.ClassName == 'Attachment' and Attachment.Name == Settings.AttachmentName and not DamagePoints[Attachment] then
-			local DirectChild = Attachment.Parent == CasterObject.Object
-			DamagePoints[Attachment] = DirectChild
-
-			if CasterObject.Owner == nil then
-				local Trail = Instance.new('Trail')
-				local TrailAttachment = Instance.new('Attachment')
-
-				TrailAttachment.Name = Settings.DebugAttachmentName
-				TrailAttachment.Position = Attachment.Position - AttachmentOffset
-
-				Trail.Color = ColorSequence.new(Settings.DebugColor)
-				Trail.Enabled = CasterObject._Debug and (DirectChild or CasterObject.Recursive)
-				Trail.LightEmission = 1
-				Trail.Transparency = TrailTransparency
-				Trail.FaceCamera = true
-				Trail.Lifetime = Settings.DebugLifetime
-
-				Trail.Attachment0 = Attachment
-				Trail.Attachment1 = TrailAttachment
-
-				Trail.Parent = TrailAttachment
-				TrailAttachment.Parent = Attachment.Parent
-
-				coroutine.wrap(function()
-					repeat
-						Attachment.AncestryChanged:Wait()
-					until not Attachment:IsDescendantOf(CasterObject.Object)
-
-					TrailAttachment:Destroy()
-					DebugTrails[Trail] = nil
-					DamagePoints[Attachment] = nil
-				end)()
-				DebugTrails[Trail] = TrailAttachment
-			end
-		end
-	end
+	local HB = RCHB.new(Object);
+	HB.DetectionMode = 2
+	HB.RaycastParams = RaycastParameters
+	
 	CasterObject = setmetatable({
+		Raycast = HB;
 		RaycastParams = RaycastParameters,
 		Object = Object,
 		Owner = NetworkOwner,
@@ -459,62 +423,14 @@ function ClientCast.new(Object, RaycastParameters, NetworkOwner)
 		_Debug = Settings.DebugMode,
 		_ExhaustionTime = 1,
 		_UniqueId = GenerateId(),
-		_DamagePoints = DamagePoints,
-		_DebugTrails = DebugTrails,
-		_OnDamagePointAdded = OnDamagePointAdded,
 		_Class = 'Caster'
 	}, ClientCaster)
 
-	for _, Descendant in next, Object:GetDescendants() do
-		OnDamagePointAdded(Descendant)
-	end
+	ClientCast.InitiatedCasters[CasterObject._UniqueId] = CasterObject;
 
-	CasterObject._DescendantConnection = Object.DescendantAdded:Connect(OnDamagePointAdded)
-	CasterObject._ReplicationConnection = NetworkOwner ~= nil and Replication.new(NetworkOwner, Object, RaycastParameters, CasterObject)
+	CasterObject._ReplicationConnection = NetworkOwner ~= nil and
+		Replication.new(NetworkOwner, Object, RaycastParameters, CasterObject)
 	return CasterObject
 end
-
-local function UpdateCasterEvents(Caster, RaycastResult)
-	if RaycastResult then
-		for CollisionEvent in next, Caster._CollidedEvents.Any do
-			CollisionEvent:Invoke(RaycastResult)
-		end
-
-		local ModelAncestor = RaycastResult.Instance:FindFirstAncestorOfClass('Model')
-		local Humanoid = ModelAncestor and ModelAncestor:FindFirstChildOfClass('Humanoid')
-		if Humanoid then
-			for HumanoidEvent in next, Caster._CollidedEvents.Humanoid do
-				HumanoidEvent:Invoke(RaycastResult, Humanoid)
-			end
-		end
-	end
-end
-local function UpdateAttachment(Attachment, Caster, LastPositions)
-	local CurrentPosition = Attachment.WorldPosition
-	local LastPosition = LastPositions[Attachment] or CurrentPosition
-
-	if CurrentPosition ~= LastPosition then
-		local RaycastResult = workspace:Raycast(CurrentPosition, CurrentPosition - LastPosition, Caster.RaycastParams)
-
-		UpdateCasterEvents(Caster, RaycastResult)
-	end
-
-	LastPositions[Attachment] = CurrentPosition
-end
-RunService.Heartbeat:Connect(function()
-	for Caster, LastPositions in next, ClientCast.InitiatedCasters do
-		local CasterObject = Caster.Object
-
-		if Caster.Owner == nil and CasterObject then
-			local RecursiveCaster = Caster.Recursive
-
-			for Attachment, DirectChild in next, Caster._DamagePoints do
-				if DirectChild or RecursiveCaster then
-					UpdateAttachment(Attachment, Caster, LastPositions)
-				end
-			end
-		end
-	end
-end)
 
 return ClientCast
