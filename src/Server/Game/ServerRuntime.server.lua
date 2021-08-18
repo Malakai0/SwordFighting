@@ -23,9 +23,7 @@ local function CharacterAdded(Character: Model)
     Character:SetAttribute('UID', game:GetService('HttpService'):GenerateGUID())
     Character.Parent = workspace.Entities.Players;
 
-    local Sword = game:GetService('ServerStorage').Assets.Sword:Clone();
-    Sword.Parent = Character;
-    Sword:SetAttribute('Owner', game:GetService("Players"):GetPlayerFromCharacter(Character).UserId)
+    Knit.Services.SwordService:GiveSword(game:GetService("Players"):GetPlayerFromCharacter(Character));
 
     Knit.Modules.HitboxManager.ApplyHitboxToCharacter(Character);
 end

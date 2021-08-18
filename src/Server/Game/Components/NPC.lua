@@ -11,7 +11,7 @@ NPC.Tag = "NPC"
 
 function NPC.new(instance)
     local self = setmetatable({
-        Sword = nil;
+        
     }, NPC)
     self._maid = Maid.new()
     return self
@@ -26,7 +26,6 @@ function NPC:Init()
     self._maid:GiveTask(self.Instance.Humanoid.Died:Connect(function()
         self.Instance:SetAttribute('UID', nil)
         self.Instance:SetAttribute('NPC', false)
-        self.Sword:Destroy()
         self:Destroy()
     end))
 
@@ -34,11 +33,6 @@ function NPC:Init()
     self.Instance:SetAttribute('NPC', true)
 
     Knit.Modules.HitboxManager.ApplyHitboxToCharacter(self.Instance)
-    local Sword = game:GetService('ServerStorage').Assets.Sword:Clone();
-    Sword.Parent = self.Instance;
-    Sword:SetAttribute('Owner', self.Instance:GetAttribute('UID'));
-    
-    self.Sword = Component.FromTag('Sword'):GetFromInstance(Sword);
 
     self._maid:GiveTask(game:GetService("RunService").Heartbeat:Connect(function()
         self:Update()
