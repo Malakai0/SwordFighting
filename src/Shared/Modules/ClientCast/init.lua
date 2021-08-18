@@ -116,7 +116,7 @@ function ReplicationBase:Start()
 		if Player == Owner and IsValid(RaycastResult) and (Code == 'Any' or Code == 'Humanoid') then
 			Humanoid = Code == 'Humanoid' and Humanoid or nil
 			for Event in next, self.Caster._CollidedEvents[Code] do
-				Event:Invoke(RaycastResult, Humanoid)
+				task.spawn(Event.Invoke, Event, RaycastResult, Humanoid)
 			end
 		end
 	end)

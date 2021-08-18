@@ -53,6 +53,8 @@ function HitboxManager.ApplyHitboxToCharacter(Character: Model)
         end
         HitboxParts = nil;
     end)
+
+    return Connection;
 end
 
 HitboxManager.CreateHitboxForInstance = HitboxModule.new;

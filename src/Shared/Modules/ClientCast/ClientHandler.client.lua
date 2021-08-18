@@ -227,10 +227,17 @@ local function UpdateAttachment(Attachment, Caster, LastPositions)
 	local CurrentPosition = Attachment.WorldPosition
 	local LastPosition = LastPositions[Attachment] or CurrentPosition
 
-	local RaycastResult = workspace:Raycast(LastPosition, CurrentPosition - LastPosition, Caster.RaycastParams)
+	local RaycastResult = workspace:Raycast(LastPosition, LastPosition - CurrentPosition, Caster.RaycastParams)
 
 	if ((not RaycastResult) or not RaycastResult.Instance) then
-		RaycastResult = workspace:Raycast(CurrentPosition, CurrentPosition - LastPosition, Caster.RaycastParams);
+		RaycastResult = workspace:Raycast(CurrentPosition, LastPosition - CurrentPosition, Caster.RaycastParams);
+	end
+
+	if ((not RaycastResult) or not RaycastResult.Instance) then
+		for _ = 1, 10 do
+			RaycastResult = workspace:Raycast(CurrentPosition, LastPosition - CurrentPosition, Caster.RaycastParams);
+			if (RaycastResult and RaycastResult.Instance) then break end;
+		end
 	end
 
 	UpdateCasterEvents(RaycastResult)
@@ -248,11 +255,13 @@ RunService.Heartbeat:Connect(function()
 
 		local RecursiveCaster = Caster.Recursive
 
-		for Attachment, DirectChild in next, Caster._DamagePoints do
-			if DirectChild or RecursiveCaster then
-				UpdateAttachment(Attachment, Caster, LastPositions)
+		task.spawn(function()
+			for Attachment, DirectChild in next, Caster._DamagePoints do
+				if DirectChild or RecursiveCaster then
+					task.spawn(UpdateAttachment, Attachment, Caster, LastPositions)
+				end
 			end
-		end
+		end)
 	end
 end)
 

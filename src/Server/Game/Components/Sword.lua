@@ -88,10 +88,12 @@ function Sword:NormalAttack(ignoreCool)
 
     waitFrames(SwordSlashTimings.Start[SwingIndex]) -- Until actual slash begins
 
-    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(SwordSlashTimings.Stop[SwingIndex]))
+    local Seconds = SwordSlashTimings.Stop[SwingIndex];
+
+    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(Seconds - (Seconds/10)))
     self.Signals.HitStart:Fire('NormalAttack')
 
-    waitFrames(SwordSlashTimings.Stop[SwingIndex]) -- How long the slash is, with conpensation.
+    waitFrames(Seconds) -- How long the slash is, with conpensation.
 
     self.Hitbox:HitStop()
     self.Signals.HitStop:Fire()
@@ -344,7 +346,7 @@ function Sword:InitializeSword()
 
     self._maid:GiveTask(self.Signals.HitStop:Connect(function()
         for i = 1, #self.TemporaryMoveInfo.HitCools do
-            Knit.Shared.Cooldown:ForceRemove(self.TemporaryMoveInfo.HitCools[i]);
+            Knit.Shared.Cooldown:ForceRemove(self.TemporaryMoveInfo.HitCools[1]);
             table.remove(self.TemporaryMoveInfo.HitCools, 1)
         end
     end))
@@ -353,12 +355,15 @@ function Sword:InitializeSword()
         if (not CollidePart) then return end;
 
         local CharacterModel = CollidePart.Parent;
-        if (Knit.Shared.Cooldown:Working(self:GetDamageCoolKey(CharacterModel, MoveKey))) then
+
+        local Key = self:GetDamageCoolKey(CharacterModel, MoveKey);
+
+        if (Knit.Shared.Cooldown:Working(Key)) then
             return
         end
 
-        Knit.Shared.Cooldown:Set(self:GetDamageCoolKey(CharacterModel, MoveKey), HitCool);
-        table.insert(self.TemporaryMoveInfo.HitCools, self:GetDamageCoolKey(CharacterModel, MoveKey));
+        Knit.Shared.Cooldown:Set(Key, HitCool);
+        table.insert(self.TemporaryMoveInfo.HitCools, Key);
 
         self:OnHit(MoveKey, CollidePart);
     end)
