@@ -8,6 +8,13 @@ local ReplicatorService = Knit.CreateService {
 
 local Event: RemoteEvent = game:GetService("ReplicatedStorage").Replicator;
 
+function ReplicatorService:FireOnServer(Client, Key, ...)
+    local Func = Knit.Shared.ClientFunctions[Key];
+    if (Func) then
+        Func(Client, ...);
+    end
+end
+
 --// Base functions
 function ReplicatorService:Fire(Client, Key, ...)
     Event:FireClient(Client, Key, ...)
@@ -38,5 +45,8 @@ Generate('Animate', 'Animator');
 
 --// Client Effects
 Generate('Effect');
+
+--// Sprint Updater
+Generate('UpdateSprinting')
 
 return ReplicatorService

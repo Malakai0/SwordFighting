@@ -84,7 +84,7 @@ function Sword:NormalAttack(ignoreCool)
     local Replicator, Data, _, _ = GrabModules()
 
     local SwingIndex = self.TemporaryMoveInfo.SwingIndex;
-    Replicator:Animate(self.CurrentOwner, 'Sword/Slash'..SwingIndex, Data.AnimationStates.Active)
+    Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Slash'..SwingIndex, Data.AnimationStates.Active)
 
     waitFrames(SwordSlashTimings.Start[SwingIndex]) -- Until actual slash begins
 
@@ -133,8 +133,8 @@ function Sword:Equip(playAnimations, ignoreCool)
     local RightArm = Character:FindFirstChild('Right Arm')
 
     if (playAnimations) then
-        Replicator:Animate(self.CurrentOwner, 'Sword/Unequip', Data.AnimationStates.Inactive)
-        Replicator:Animate(self.CurrentOwner, 'Sword/Equip', Data.AnimationStates.Active)
+        Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Unequip', Data.AnimationStates.Inactive)
+        Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Equip', Data.AnimationStates.Active)
     end
 
     waitFrames(playAnimations and 10 or 0) -- Until hand is on handle.
@@ -172,8 +172,8 @@ function Sword:Unequip(playAnimations, ignoreCool)
     local RightArm = Character:FindFirstChild('Right Arm')
 
     if (playAnimations) then
-        Replicator:Animate(self.CurrentOwner, 'Sword/Equip', Data.AnimationStates.Inactive)
-        Replicator:Animate(self.CurrentOwner, 'Sword/Unequip', Data.AnimationStates.Active)
+        Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Equip', Data.AnimationStates.Inactive)
+        Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Unequip', Data.AnimationStates.Active)
     end
 
     waitFrames(playAnimations and 10 or 0) -- Until sword is in sheath.

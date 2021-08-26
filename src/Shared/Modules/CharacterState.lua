@@ -1,3 +1,5 @@
+local Knit = require(game:GetService("ReplicatedStorage").Knit)
+
 local CharState = {}
 CharState.__index = CharState
 
@@ -49,7 +51,12 @@ end
 
 function CharState:SetSprinting(sprintingVal: boolean)
 
-    if (sprintingVal and self.Stamina <= CharState.MIN_VAL) then
+    local Humanoid: Humanoid = self.Character and self.Character:FindFirstChild'Humanoid'
+    if (not Humanoid) then
+        return
+    end
+
+    if (sprintingVal and (self.Stamina <= CharState.MIN_VAL or Humanoid.Health <= 0)) then
         return false;
     end
 
@@ -59,6 +66,11 @@ function CharState:SetSprinting(sprintingVal: boolean)
     end
 
     self.IsSprinting = not (not sprintingVal); --// So we get a boolean, just to be neat :^).
+
+    local Player = game:GetService("Players"):GetPlayerFromCharacter(self.Character)
+    if (game:GetService'RunService':IsServer() and Player) then
+        Knit.Services.ReplicatorService:UpdateSprinting(Player, self.IsSprinting, self.Stamina);
+    end
 
     if (self.IsSprinting) then
         self.StartedSprinting = tick()
