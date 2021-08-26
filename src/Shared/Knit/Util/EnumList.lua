@@ -1,3 +1,5 @@
+--!strict
+
 -- EnumList
 -- Stephen Leitnick
 -- January 08, 2021
@@ -18,14 +20,16 @@
 --]]
 
 
+type EnumNames = {string}
+
 local Symbol = require(script.Parent.Symbol)
 
 local EnumList = {}
 
 
-function EnumList.new(name, enums)
-	local scope = Symbol.new(name)
-	local enumItems = {}
+function EnumList.new(name: string, enums: EnumNames)
+	local scope = Symbol.new(name, nil)
+	local enumItems: {[string]: Symbol.Symbol} = {}
 	for _,enumName in ipairs(enums) do
 		enumItems[enumName] = Symbol.new(enumName, scope)
 	end
@@ -33,9 +37,9 @@ function EnumList.new(name, enums)
 		_scope = scope;
 	}, {
 		__index = function(_t, k)
-			if (enumItems[k]) then
+			if enumItems[k] then
 				return enumItems[k]
-			elseif (EnumList[k]) then
+			elseif EnumList[k] then
 				return EnumList[k]
 			else
 				error("Unknown " .. name .. ": " .. tostring(k), 2)
@@ -49,9 +53,12 @@ function EnumList.new(name, enums)
 end
 
 
-function EnumList:Is(obj)
+function EnumList:Is(obj: any): boolean
 	return Symbol.IsInScope(obj, self._scope)
 end
+
+
+export type EnumList = typeof(EnumList.new("", {""}))
 
 
 return EnumList
