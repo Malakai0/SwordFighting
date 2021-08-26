@@ -1,4 +1,6 @@
--- Table Util
+--!strict
+
+-- TableUtil
 -- Stephen Leitnick
 -- September 13, 2017
 
@@ -11,17 +13,20 @@
 	TableUtil.FastRemoveFirstValue(tbl: table, value: any): (boolean, number)
 	TableUtil.Map(tbl: table, callback: (value: any) -> any): table
 	TableUtil.Filter(tbl: table, callback: (value: any) -> boolean): table
-	TableUtil.Reduce(tbl: table, callback: (accum: number, value: number) -> number [, initialValue: number]): number
+	TableUtil.Reduce(tbl: table, callback: (accum: any, value: any) -> any [, initialValue: any]): any
 	TableUtil.Assign(target: table, ...sources: table): table
 	TableUtil.Extend(tbl: table, extension: table): table
 	TableUtil.Reverse(tbl: table): table
 	TableUtil.Shuffle(tbl: table [, rng: Random]): table
+	TableUtil.Sample(tbl: table, sampleSize: number, [, rng: Random]): table
 	TableUtil.Flat(tbl: table [, maxDepth: number = 1]): table
 	TableUtil.FlatMap(tbl: callback: (value: any) -> table): table
 	TableUtil.Keys(tbl: table): table
 	TableUtil.Find(tbl: table, callback: (value: any) -> boolean): (any, number)
 	TableUtil.Every(tbl: table, callback: (value: any) -> boolean): boolean
 	TableUtil.Some(tbl: table, callback: (value: any) -> boolean): boolean
+	TableUtil.Truncate(tbl: table, length: number): table
+	TableUtil.Zip(...table): ((table, any) -> (any, any), table, any)
 	TableUtil.IsEmpty(tbl: table): boolean
 	TableUtil.EncodeJSON(tbl: table): string
 	TableUtil.DecodeJSON(json: string): table
@@ -29,18 +34,25 @@
 --]]
 
 
+type Table = {any}
+type MapPredicate = (any, any, Table) -> any
+type FilterPredicate = (any, any, Table) -> boolean
+type ReducePredicate = (number, any, any, Table) -> number
+type FindCallback = (any, any, Table) -> boolean
+type IteratorFunc = (t: Table, k: any) -> (any, any)
+
 local TableUtil = {}
 
 local HttpService = game:GetService("HttpService")
 local rng = Random.new()
 
 
-local function CopyTable(t)
+local function CopyTable(t: Table): Table
 	assert(type(t) == "table", "First argument must be a table")
 	local function Copy(tbl)
 		local tCopy = table.create(#tbl)
 		for k,v in pairs(tbl) do
-			if (type(v) == "table") then
+			if type(v) == "table" then
 				tCopy[k] = Copy(v)
 			else
 				tCopy[k] = v
@@ -52,9 +64,9 @@ local function CopyTable(t)
 end
 
 
-local function CopyTableShallow(t)
+local function CopyTableShallow(t: Table): Table
 	local tCopy = table.create(#t)
-	if (#t > 0) then
+	if #t > 0 then
 		table.move(t, 1, #t, 1, tCopy)
 	else
 		for k,v in pairs(t) do tCopy[k] = v end
@@ -63,7 +75,7 @@ local function CopyTableShallow(t)
 end
 
 
-local function Sync(srcTbl, templateTbl)
+local function Sync(srcTbl: Table, templateTbl: Table): Table
 
 	assert(type(srcTbl) == "table", "First argument must be a table")
 	assert(type(templateTbl) == "table", "Second argument must be a table")
@@ -78,19 +90,19 @@ local function Sync(srcTbl, templateTbl)
 		local vTemplate = templateTbl[k]
 
 		-- Remove keys not within template:
-		if (vTemplate == nil) then
+		if vTemplate == nil then
 			tbl[k] = nil
 
 		-- Synchronize data types:
-		elseif (type(v) ~= type(vTemplate)) then
-			if (type(vTemplate) == "table") then
+		elseif type(v) ~= type(vTemplate) then
+			if type(vTemplate) == "table" then
 				tbl[k] = CopyTable(vTemplate)
 			else
 				tbl[k] = vTemplate
 			end
 
 		-- Synchronize sub-tables:
-		elseif (type(v) == "table") then
+		elseif type(v) == "table" then
 			tbl[k] = Sync(v, vTemplate)
 		end
 
@@ -101,8 +113,8 @@ local function Sync(srcTbl, templateTbl)
 
 		local v = tbl[k]
 
-		if (v == nil) then
-			if (type(vTemplate) == "table") then
+		if v == nil then
+			if type(vTemplate) == "table" then
 				tbl[k] = CopyTable(vTemplate)
 			else
 				tbl[k] = vTemplate
@@ -116,24 +128,23 @@ local function Sync(srcTbl, templateTbl)
 end
 
 
-local function FastRemove(t, i)
+local function FastRemove(t: Table, i: number)
 	local n = #t
 	t[i] = t[n]
 	t[n] = nil
 end
 
 
-local function FastRemoveFirstValue(t, v)
-	local index = table.find(t, v)
-	if (index) then
+local function FastRemoveFirstValue(t: Table, v: any): (boolean, number?)
+	local index: number? = table.find(t, v)
+	if index then
 		FastRemove(t, index)
 		return true, index
 	end
 	return false, nil
 end
 
-
-local function Map(t, f)
+local function Map(t: Table, f: MapPredicate): Table
 	assert(type(t) == "table", "First argument must be a table")
 	assert(type(f) == "function", "Second argument must be a function")
 	local newT = table.create(#t)
@@ -144,21 +155,21 @@ local function Map(t, f)
 end
 
 
-local function Filter(t, f)
+local function Filter(t: Table, f: FilterPredicate): Table
 	assert(type(t) == "table", "First argument must be a table")
 	assert(type(f) == "function", "Second argument must be a function")
 	local newT = table.create(#t)
-	if (#t > 0) then
+	if #t > 0 then
 		local n = 0
 		for i,v in ipairs(t) do
-			if (f(v, i, t)) then
+			if f(v, i, t) then
 				n += 1
 				newT[n] = v
 			end
 		end
 	else
 		for k,v in pairs(t) do
-			if (f(v, k, t)) then
+			if f(v, k, t) then
 				newT[k] = v
 			end
 		end
@@ -167,19 +178,34 @@ local function Filter(t, f)
 end
 
 
-local function Reduce(t, f, init)
+local function Reduce(t: Table, f: ReducePredicate, init: any?): any
 	assert(type(t) == "table", "First argument must be a table")
 	assert(type(f) == "function", "Second argument must be a function")
-	assert(init == nil or type(init) == "number", "Third argument must be a number or nil")
-	local result = (init or 0)
-	for k,v in pairs(t) do
-		result = f(result, v, k, t)
+	local result = init
+	if #t > 0 then
+		local start = 1
+		if init == nil then
+			result = t[1]
+			start = 2
+		end
+		for i = start,#t do
+			result = f(result, t[i], i, t)
+		end
+	else
+		local start = nil
+		if init == nil then
+			result = next(t)
+			start = result
+		end
+		for k,v in next,t,start do
+			result = f(result, v, k, t)
+		end
 	end
 	return result
 end
 
 
-local function Assign(target, ...)
+local function Assign(target: Table, ...: Table): Table
 	local tbl = CopyTableShallow(target)
 	for _,src in ipairs({...}) do
 		for k,v in pairs(src) do
@@ -190,7 +216,7 @@ local function Assign(target, ...)
 end
 
 
-local function Extend(target, extension)
+local function Extend(target: Table, extension: Table): Table
 	local tbl = CopyTableShallow(target)
 	for _,v in ipairs(extension) do
 		table.insert(tbl, v)
@@ -199,7 +225,7 @@ local function Extend(target, extension)
 end
 
 
-local function Reverse(tbl)
+local function Reverse(tbl: Table): Table
 	local n = #tbl
 	local tblRev = table.create(n)
 	for i = 1,n do
@@ -209,10 +235,10 @@ local function Reverse(tbl)
 end
 
 
-local function Shuffle(tbl, rngOverride)
+local function Shuffle(tbl: Table, rngOverride: Random?): Table
 	assert(type(tbl) == "table", "First argument must be a table")
 	local shuffled = CopyTableShallow(tbl)
-	local random = (rngOverride or rng)
+	local random = rngOverride or rng
 	for i = #tbl, 2, -1 do
 		local j = random:NextInteger(1, i)
 		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
@@ -221,12 +247,29 @@ local function Shuffle(tbl, rngOverride)
 end
 
 
-local function Flat(tbl, depth)
-	depth = (depth or 1)
+local function Sample(tbl: Table, size: number, rngOverride: Random?): Table
+	assert(type(tbl) == "table", "First argument must be a table")
+	assert(type(size) == "number", "Second argument must be a number")
+	local shuffled = CopyTableShallow(tbl)
+	local sample = table.create(size)
+	local random = rngOverride or rng
+	local len = #tbl
+	size = math.clamp(size, 1, len)
+	for i = 1,size do
+		local j = random:NextInteger(i, len)
+		shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
+	end
+	table.move(shuffled, 1, size, 1, sample)
+	return sample
+end
+
+
+local function Flat(tbl: Table, depth: number?): Table
+	local maxDepth: number = depth or 1
 	local flatTbl = table.create(#tbl)
-	local function Scan(t, d)
+	local function Scan(t: Table, d: number)
 		for _,v in ipairs(t) do
-			if (type(v) == "table" and d < depth) then
+			if type(v) == "table" and d < maxDepth then
 				Scan(v, d + 1)
 			else
 				table.insert(flatTbl, v)
@@ -238,12 +281,12 @@ local function Flat(tbl, depth)
 end
 
 
-local function FlatMap(tbl, callback)
+local function FlatMap(tbl: Table, callback: MapPredicate): Table
 	return Flat(Map(tbl, callback))
 end
 
 
-local function Keys(tbl)
+local function Keys(tbl: Table): Table
 	local keys = table.create(#tbl)
 	for k in pairs(tbl) do
 		table.insert(keys, k)
@@ -252,9 +295,9 @@ local function Keys(tbl)
 end
 
 
-local function Find(tbl, callback)
+local function Find(tbl: Table, callback: FindCallback): (any?, any?)
 	for k,v in pairs(tbl) do
-		if (callback(v, k, tbl)) then
+		if callback(v, k, tbl) then
 			return v, k
 		end
 	end
@@ -262,9 +305,9 @@ local function Find(tbl, callback)
 end
 
 
-local function Every(tbl, callback)
+local function Every(tbl: Table, callback: FindCallback): boolean
 	for k,v in pairs(tbl) do
-		if (not callback(v, k, tbl)) then
+		if not callback(v, k, tbl) then
 			return false
 		end
 	end
@@ -272,9 +315,9 @@ local function Every(tbl, callback)
 end
 
 
-local function Some(tbl, callback)
+local function Some(tbl: Table, callback: FindCallback): boolean
 	for k,v in pairs(tbl) do
-		if (callback(v, k, tbl)) then
+		if callback(v, k, tbl) then
 			return true
 		end
 	end
@@ -282,17 +325,58 @@ local function Some(tbl, callback)
 end
 
 
-local function IsEmpty(tbl)
-	return (next(tbl) == nil)
+local function Truncate(tbl: Table, len: number): Table
+	return table.move(tbl, 1, len, 1, table.create(len))
 end
 
 
-local function EncodeJSON(tbl)
+local function Zip(...): (IteratorFunc, Table, any)
+	assert(select("#", ...) > 0, "Must supply at least 1 table")
+	local function ZipIteratorArray(all: Table, k: number)
+		k += 1
+		local values = {}
+		for i,t in ipairs(all) do
+			local v = t[k]
+			if v ~= nil then
+				values[i] = v
+			else
+				return nil, nil
+			end
+		end
+		return k, values
+	end
+	local function ZipIteratorMap(all: Table, k: any)
+		local values = {}
+		for i,t in ipairs(all) do
+			local v = next(t, k)
+			if v ~= nil then
+				values[i] = v
+			else
+				return nil, nil
+			end
+		end
+		return k, values
+	end
+	local all = {...}
+	if #all[1] > 0 then
+		return ZipIteratorArray, all, 0
+	else
+		return ZipIteratorMap, all, nil
+	end
+end
+
+
+local function IsEmpty(tbl)
+	return next(tbl) == nil
+end
+
+
+local function EncodeJSON(tbl: any): string
 	return HttpService:JSONEncode(tbl)
 end
 
 
-local function DecodeJSON(str)
+local function DecodeJSON(str: string): any
 	return HttpService:JSONDecode(str)
 end
 
@@ -309,15 +393,17 @@ TableUtil.Assign = Assign
 TableUtil.Extend = Extend
 TableUtil.Reverse = Reverse
 TableUtil.Shuffle = Shuffle
+TableUtil.Sample = Sample
 TableUtil.Flat = Flat
 TableUtil.FlatMap = FlatMap
 TableUtil.Keys = Keys
 TableUtil.Find = Find
 TableUtil.Every = Every
 TableUtil.Some = Some
+TableUtil.Truncate = Truncate
+TableUtil.Zip = Zip
 TableUtil.IsEmpty = IsEmpty
 TableUtil.EncodeJSON = EncodeJSON
 TableUtil.DecodeJSON = DecodeJSON
-
 
 return TableUtil
