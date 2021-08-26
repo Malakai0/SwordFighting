@@ -7,6 +7,11 @@ local AnimationFolder = game:GetService("ReplicatedStorage"):WaitForChild('Anima
 local CachedAnimations = {};
 
 Functions.Animator = function(Character, Name, State)
+
+    if (Character:IsA('Player')) then
+        Character = Character.Character;
+    end
+
     local Humanoid = Character and Character:FindFirstChildOfClass'Humanoid'
     if (not Humanoid) then
         return;
@@ -19,6 +24,7 @@ Functions.Animator = function(Character, Name, State)
     for x,c in next, CachedAnimations do
         if x == nil or x.Parent == nil then
             c = nil;
+            x = nil;
         end
     end
 

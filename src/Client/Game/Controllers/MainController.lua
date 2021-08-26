@@ -32,9 +32,8 @@ function MainController:KnitStart()
     InputController:Began(function(Key)
 
         if (InputController:GrabInput(Key) == SPRINT_KEY and Knit.Player.Character and MainController.ClientCharacterState) then
-            local CanSprint = MainController.ClientCharacterState.Stamina >= CharacterState.MIN_VAL;
-            if (CanSprint and ClientService:SetSprinting(true)) then
-                MainController.ClientCharacterState:SetSprinting(true)
+            if (MainController.ClientCharacterState.Stamina >= CharacterState.MIN_VAL) then
+                ClientService:SetSprinting(true)
             end
         end
 
@@ -43,10 +42,16 @@ function MainController:KnitStart()
     InputController:Ended(function(Key)
         
         if (InputController:GrabInput(Key) == SPRINT_KEY and Knit.Player.Character and MainController.ClientCharacterState) then
-            MainController.ClientCharacterState:SetSprinting(false);
             ClientService:SetSprinting(false)
         end
 
+    end)
+
+    Replicator:AddEvent('UpdateSprinting', function(Value, Stamina)
+        if (MainController.ClientCharacterState) then
+            MainController.ClientCharacterState.Stamina = Stamina;
+            MainController.ClientCharacterState:SetSprinting(Value)
+        end
     end)
 
     game:GetService("RunService").Heartbeat:Connect(function()
