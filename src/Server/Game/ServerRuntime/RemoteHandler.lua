@@ -28,11 +28,11 @@ local function DecodeValue(Player, Value, Recursive)
 
 	local Invalid = Value[1] and type(Value[1]) ~= 'string'
 	if ((not Value[1]) or (Invalid)) then
-		Player:Kick()
+		Player:Kick('Error Code 1')
 	end
 
 	if (not Value[4]) then
-		Player:Kick()
+		return; --// Prone to failure when passing instances, no kicking necessary.
 	end
 
 	local TypeString = MD5.Decode(Value[1])
@@ -46,11 +46,11 @@ local function DecodeValue(Player, Value, Recursive)
 		else
 			
 			if (type(Value[4]) ~= 'string') then
-				Player:Kick()
+				Player:Kick('Error Code 3')
 			end
 			
 			if (not Value[4]:find('^')) then
-				Player:Kick()
+				Player:Kick('Error Code 4')
 			end
 			
 			local DecodedValue = MD5.Decode(Value[4]:split('^')[2])
@@ -323,7 +323,7 @@ function module.Initialize()
 		
 		if (TicketID == 'CON') then
 			if (module.Called[Player]) then
-				Player:Kick()
+				Player:Kick('Error Code 5')
 			else
 				module.Called[Player] = true;
 				for Name, _ in next, module.Connections do
@@ -336,7 +336,7 @@ function module.Initialize()
 	end)
 
 	module.CreateRemote('CLIENT', function(Player)
-		Player:Kick()
+		Player:Kick('Error Code 6')
 	end, 'RemoteEvent'); -- Client Connections.
 	
 	game:GetService("Players").PlayerAdded:Connect(function(Player: Player)

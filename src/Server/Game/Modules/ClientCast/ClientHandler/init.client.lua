@@ -84,8 +84,9 @@ function ClientCaster:Start()
 
 			local Character = game:GetService'Players'.LocalPlayer.Character
 			if (not Character) then return end;
+			
 			local Relative = Character.HumanoidRootPart.Position - raycastResult.Position;
-			if (Relative.Magnitude > 32767 or Relative.Magnitude < -32768) then return end;
+			if (Relative.Magnitude > 32767 or Relative.Magnitude < -32768) then return end; --// Limitations of Vector3int16
 			local Position = Vector3int16.new(Relative.X, Relative.Y, Relative.Z);
 
 			shared.Fire('Replication', self.Id, 'Any', part, Position);

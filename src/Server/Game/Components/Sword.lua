@@ -352,10 +352,17 @@ function Sword:InitializeSword()
         end
     end))
 
+    local ClientService = Knit.Services.ClientService;
+
     self.Hitbox:OnHit(function(MoveKey, CollidePart, HitCool)
         if (not CollidePart) then return end;
 
         local CharacterModel = CollidePart.Parent;
+
+        local Player = game:GetService("Players"):GetPlayerFromCharacter(CharacterModel)
+        if (Player and ClientService:IsInvincible(Player)) then
+            return;
+        end
 
         local Key = self:GetDamageCoolKey(CharacterModel, MoveKey);
 

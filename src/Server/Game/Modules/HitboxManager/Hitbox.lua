@@ -54,6 +54,8 @@ function Hitbox:HitStart(Key, HitCool, ...)
         end)(workspace.Entities.Players, workspace.Entities.NPCs)
 
         if (not Character) then return end;
+        if (not Character:FindFirstChild'Humanoid') then return end;
+        if (Character.Humanoid.Health <= 0) then return end;
 
         local TargetPlayer = game:GetService("Players"):GetPlayerFromCharacter(Character)
 
@@ -67,7 +69,7 @@ function Hitbox:HitStart(Key, HitCool, ...)
         idCache[hitPart] = id
 
         task.delay(0.5, function()
-            if (idCache[hitPart] == id) then
+            if (hitPart and idCache[hitPart] == id) then
                 hitPart.Transparency = 1;
                 idCache[hitPart] = nil;
             end
@@ -92,11 +94,12 @@ function Hitbox:HitStart(Key, HitCool, ...)
 
     local Params: RaycastParams = self.Params
     Params.FilterType = Enum.RaycastFilterType.Whitelist
-    Params.FilterDescendantsInstances = workspace.Entities.Hitboxes:GetChildren();
+    Params.FilterDescendantsInstances = {workspace.Entities.Hitboxes};
     self.Params = Params
 
     self.Object.RaycastParams = Params;
 
+    self.Object:Stop();
     return self.Object:Start(...)
 end
 

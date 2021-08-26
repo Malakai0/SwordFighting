@@ -44,14 +44,18 @@ function HitboxManager.ApplyHitboxToCharacter(Character: Model)
     end
 
     local Connection;
-    Connection = Humanoid.Died:Connect(function()
-        Connection:Disconnect()
+    Connection = Humanoid:GetPropertyChangedSignal('Health'):Connect(function()
+        if (Humanoid.Health <= 0) then
+            Connection:Disconnect()
 
-        for i,v in next, HitboxParts do
-            v:Destroy()
-            v = nil
+            task.wait(1)
+
+            for i,v in next, HitboxParts do
+                v:Destroy()
+                v = nil
+            end
+            HitboxParts = nil;
         end
-        HitboxParts = nil;
     end)
 
     return Connection;

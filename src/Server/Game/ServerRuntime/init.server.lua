@@ -21,31 +21,9 @@ for _,v in next, game:GetService('ReplicatedStorage').Modules:GetChildren() do
     end
 end
 
-local function CharacterAdded(Character: Model)
-    repeat wait() until Character:IsDescendantOf(workspace) and Character:FindFirstChild('Torso') and Character:FindFirstChild('Right Arm')
-
-    Character:SetAttribute('UID', game:GetService('HttpService'):GenerateGUID())
-    Character.Parent = workspace.Entities.Players;
-
-    Knit.Services.SwordService:GiveSword(game:GetService("Players"):GetPlayerFromCharacter(Character));
-
-    Knit.Modules.HitboxManager.ApplyHitboxToCharacter(Character);
-end
-
-local function PlayerAdded(Player: Player)
-    local Character = Player.Character or Player.CharacterAdded:Wait()
-    CharacterAdded(Character)
-    Player.CharacterAdded:Connect(CharacterAdded);
-end
-
 Knit.Start():Then(function()
     print('Server started!')
     Component.Auto(script.Parent.Components)
 
     print('Server running version ' .. Knit.Shared.ServerInfo.Version);
-
-    for i,v in next, game:GetService('Players'):GetPlayers() do
-        PlayerAdded(v)
-    end
-    game:GetService('Players').PlayerAdded:Connect(PlayerAdded)
 end):Catch(warn);
