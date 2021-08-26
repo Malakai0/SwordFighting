@@ -121,27 +121,25 @@ shared.RemoteHandler.AddConnection('Replication', function(Player, UniqueId, Cod
 	if (not Player.Character) then return end;
 
 	if ClientCast.WhitelistedIds[UniqueId] == Player and (Code == 'Any' or Code == 'Humanoid') and (ClientCast.InitiatedCasters[UniqueId]) then
-		local Caster;
-
 		if (typeof(Position) ~= 'Vector3int16' or typeof(Part) ~= 'Instance') then return end;
 		if (not Part:IsA('BasePart')) then return end;
 
 		local PlayerPosition = Player.Character.HumanoidRootPart.Position;
 		local Extra = 10; --// Give em lenience!
-		local Object = ClientCast.InitiatedCasters[UniqueId];
+		local Caster = ClientCast.InitiatedCasters[UniqueId];
 
-		local Given = Vector3.new(Position.X, Position.Y, Position.Z);
-		local GivenPosition = (PlayerPosition + Given);
+		local GivenOffset = Vector3.new(Position.X, Position.Y, Position.Z);
+		local GivenPosition = (PlayerPosition + GivenOffset);
 
-		local GivenDistance = ((PlayerPosition - GivenPosition).Magnitude + Object.Object.Size.Magnitude)
-		local ActualDistance = ((PlayerPosition - Object.Object.Position).Magnitude + Object.Object.Size.Magnitude + Extra)
+		local GivenDistance = (GivenOffset.Magnitude + Caster.Object.Size.Magnitude)
+		local ActualDistance = ((PlayerPosition - Caster.Object.Position).Magnitude + Caster.Object.Size.Magnitude + Extra)
 
-		if (GivenDistance > ActualDistance) then
+		if (GivenDistance > ActualDistance + Caster.Object.Velocity.Magnitude) then
 			return
 		end
 		
 		Humanoid = Code == 'Humanoid' and Humanoid or nil
-		for Event in next, Object._CollidedEvents[Code] do
+		for Event in next, Caster._CollidedEvents[Code] do
 			task.spawn(Event.Invoke, Event, Part, GivenPosition, Humanoid)
 		end
 	end

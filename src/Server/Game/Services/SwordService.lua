@@ -42,8 +42,9 @@ function SwordService:GiveSword(Player: Player)
     local Character = Player.Character;
     if (not Character) then return end;
 
-    local Sword = game:GetService('ServerStorage').Assets.Sword:Clone();
+    local Sword: Model = game:GetService('ServerStorage').Assets.Sword:Clone();
     Sword.Parent = Character;
+    Sword.PrimaryPart:SetNetworkOwner(Player);
     Sword:SetAttribute('Owner', Player.UserId)
 end
 

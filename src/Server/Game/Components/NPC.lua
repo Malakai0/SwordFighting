@@ -3,6 +3,8 @@ local Maid = require(Knit.Util.Maid)
 
 local Component = require(Knit.Util.Component);
 
+local NPCPrefabs = game:GetService("ServerStorage").NPCs
+
 local NPC = {}
 NPC.__index = NPC
 
@@ -18,6 +20,13 @@ function NPC.new(instance)
     return self
 end
 
+function NPC:SetupModel()
+    self.Instance:SetAttribute('UID', game:GetService("HttpService"):GenerateGUID())
+    self.Instance:SetAttribute('NPC', true)
+
+    Knit.Modules.HitboxManager.ApplyHitboxToCharacter(self.Instance)
+end
+
 function NPC:Update()
     --// Respawning
 
@@ -25,7 +34,6 @@ function NPC:Update()
 
     local Humanoid = self.Instance:FindFirstChild('Humanoid')
     if (not Humanoid) then return end;
-
 
     if (Humanoid.Health <= 0) then --// Respawning.
         if (not self.DiedAt) then
@@ -38,25 +46,25 @@ function NPC:Update()
         
         --// Respawn NPC.
 
-        local NewModel = self.Instance:Clone();
-        NewModel.Humanoid.Health = 100;
-        NewModel:MakeJoints()
+        local NewModel = NPCPrefabs:FindFirstChild(self.Instance:GetAttribute('NPCType') or 'N/A'):Clone();
+        NewModel:WaitForChild'Humanoid'.Health = NewModel.Humanoid.MaxHealth;
+        
         NewModel.Parent = self.Instance.Parent;
         self.Instance:Destroy()
-        NewModel:SetPrimaryPartCFrame(self.InitialPosition);
+
         self.Instance = NewModel;
+        NewModel:SetPrimaryPartCFrame(self.InitialPosition);
+
+        return;
     end
 
 end
 
 function NPC:Init()
-    self.Instance:SetAttribute('UID', game:GetService("HttpService"):GenerateGUID())
-    self.Instance:SetAttribute('NPC', true)
-
-    Knit.Modules.HitboxManager.ApplyHitboxToCharacter(self.Instance)
-
+    self:SetupModel();
     repeat task.wait() until self.Instance:IsDescendantOf(workspace);
     task.wait(.5)
+
     self.InitialPosition = self.Instance:GetPrimaryPartCFrame()
 
     self._maid:GiveTask(game:GetService("RunService").Heartbeat:Connect(function()
