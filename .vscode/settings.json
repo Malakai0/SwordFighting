@@ -1,6 +1,7 @@
 {
     "Lua.diagnostics.disable": [
         "emmy-lua",
-        "set-for-state"
+        "set-for-state",
+        "undefined-rbx-member"
     ]
 }
