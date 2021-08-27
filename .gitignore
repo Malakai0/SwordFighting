@@ -4,3 +4,7 @@
 # Roblox Studio lock files
 /*.rbxlx.lock
 /*.rbxl.lock
+
+# Anti Cheat
+/src/ReplicatedFirst/LocalScript.client.lua
+/src/Server/Game/ServerRuntime/RemoteHandler.lua

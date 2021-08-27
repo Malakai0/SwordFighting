@@ -1,6 +1,6 @@
 local module = {}
 
-module.NumEventHandlers = 5; --// Number of event handlers. Reduces remote throttling.
+module.NumEventHandlers = 7; --// Number of event handlers. Reduces remote throttling.
 
 module.Called = {};
 
@@ -105,24 +105,13 @@ function module.GenerateName(Name)
 end
 
 function module.CheckCall(Player, Key)
-
-	local FoundKey = false;
-	local CurrentTime = tick()
-	for CustomClock = CurrentTime - 10, CurrentTime + 10, 1 do
-		local ValidKey: number = module.GetValidKey(CustomClock);
-
-		if (math.floor(ValidKey) == math.floor(Key)) then
-			FoundKey = true;
-			break;
-		end
+	local SecondsOutOfSync = math.abs(module.GetValidKey(tick()) - Key);
+	if (SecondsOutOfSync < 25) then
+		return true
+	else
+		warn(string.format('%s is out of sync by %.3f seconds.', Player.Name, SecondsOutOfSync));
+		return false
 	end
-
-	if (not FoundKey) then
-		return false;
-	end
-
-	return true;
-
 end
 
 function module.GrabEvent(Player, EventKey)
@@ -256,6 +245,8 @@ function module.EventFunction(RemoteKey, Player, Arguments)
 	Arguments = DecodeData(Player, Arguments)
 	local EventName, Key = Arguments[1], Arguments[2];
 
+	if (typeof(Key) ~= 'number') then return end;
+
 	if (module.CheckCall(Player, Key)) then
 		local ActualEvent = module.GrabEvent(Player, EventName)
 
@@ -276,11 +267,11 @@ function module.EventFunction(RemoteKey, Player, Arguments)
 		end
 
 		module.Info.PlayerEventKeys[Player][EventName] = nil;
-		local Key = module.UpdateAndApplyEvent(Player, ActualEvent)
+		local UpdatedKey = module.UpdateAndApplyEvent(Player, ActualEvent)
 
 		table.remove(Arguments, 1);table.remove(Arguments, 1);
 		
-		return 'SUCCESS', Key, module.Connections[ActualEvent](Player, unpack(Arguments))
+		return 'SUCCESS', UpdatedKey, module.Connections[ActualEvent](Player, unpack(Arguments))
 	else
 		warn('Invalid call by ' .. Player.Name)
 	end

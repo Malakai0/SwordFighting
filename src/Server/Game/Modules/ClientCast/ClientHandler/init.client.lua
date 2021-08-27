@@ -89,6 +89,7 @@ function ClientCaster:Start()
 			if (Relative.Magnitude > 32767 or Relative.Magnitude < -32768) then return end; --// Limitations of Vector3int16
 			local Position = Vector3int16.new(Relative.X, Relative.Y, Relative.Z);
 
+			print('Detected hit reg on the client.')
 			shared.Fire('Replication', self.Id, 'Any', part, Position);
 
 			local ModelAncestor = part:FindFirstAncestorOfClass('Model')
