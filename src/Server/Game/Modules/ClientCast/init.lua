@@ -119,6 +119,7 @@ end
 
 shared.RemoteHandler.AddConnection('Replication', function(Player, UniqueId, Code, Part, Position, Humanoid)
 	if (not Player.Character) then return end;
+	if (not UniqueId or not Code or not Part or not Position) then return end;
 
 	if ClientCast.WhitelistedIds[UniqueId] == Player and (Code == 'Any' or Code == 'Humanoid') and (ClientCast.InitiatedCasters[UniqueId]) then
 		if (typeof(Position) ~= 'Vector3int16' or typeof(Part) ~= 'Instance') then return end;
@@ -132,16 +133,22 @@ shared.RemoteHandler.AddConnection('Replication', function(Player, UniqueId, Cod
 		local GivenPosition = (PlayerPosition + GivenOffset);
 
 		local GivenDistance = (GivenOffset.Magnitude + Caster.Object.Size.Magnitude)
-		local ActualDistance = ((PlayerPosition - Caster.Object.Position).Magnitude + Caster.Object.Size.Magnitude + Extra)
+		local ActualDistance = ((PlayerPosition - Caster.Object.Position).Magnitude + Caster.Object.Size.Magnitude)
 
-		if (GivenDistance > ActualDistance + Caster.Object.Velocity.Magnitude) then
+		if (GivenDistance > ActualDistance + Caster.Object.Velocity.Magnitude + Extra) then
+			return
+		end
+
+		if (ActualDistance - GivenDistance > 20) then
 			return
 		end
 		
-		Humanoid = Code == 'Humanoid' and Humanoid or nil
+		Humanoid = Code == 'Humanoid' and Humanoid
 		for Event in next, Caster._CollidedEvents[Code] do
 			task.spawn(Event.Invoke, Event, Part, GivenPosition, Humanoid)
 		end
+	elseif (not ClientCast.WhitelistedIds[UniqueId]) then
+		warn(Player.Name .. ' sent invalid whitelist.')
 	end
 end)
 
@@ -241,6 +248,7 @@ local CollisionBaseName = {
 function ClientCaster:Start()
 	self.Disabled = false
 
+	ClientCast.WhitelistedIds[self._UniqueId] = true
 	self.Raycast.RaycastParams = self.RaycastParams;
 
 	self.RaycastConnection = self.Raycast.OnHit:Connect(function(part, humanoid, raycastResult, groupName)
@@ -289,6 +297,7 @@ function ClientCaster:Stop()
 	end
 
 	self.Raycast:HitStop();
+	ClientCast.WhitelistedIds[self._UniqueId] = false;
 
 	self.Disabled = true
 end
