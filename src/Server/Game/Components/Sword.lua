@@ -139,11 +139,11 @@ function Sword:Equip(playAnimations, ignoreCool)
 
     waitFrames(playAnimations and 10 or 0) -- Until hand is on handle.
 
-    Welding.RemoveWeld(self.Instance.Katana.Hitbox, 'Sheath');
+    Welding.RemoveWeld(self.Instance.Katana.PrimaryPart, 'Sheath');
     Welding.WeldParts('Sheath', Torso, self.Instance.Sheath, Offsets.TorsoSheath)
 
     Welding.RemoveWeld(Torso, 'Sword')
-    Welding.WeldParts('Sword', RightArm, self.Instance.Katana.Hitbox, Offsets.RightArmSword)
+    Welding.WeldParts('Sword', RightArm, self.Instance.Katana.PrimaryPart, Offsets.RightArmSword)
 
     Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
 end
@@ -179,12 +179,12 @@ function Sword:Unequip(playAnimations, ignoreCool)
     waitFrames(playAnimations and 10 or 0) -- Until sword is in sheath.
 
     Welding.RemoveWeld(RightArm, 'Sword')
-    Welding.WeldParts('Sword', Torso, self.Instance.Katana.Hitbox, Offsets.TorsoSword)
+    Welding.WeldParts('Sword', Torso, self.Instance.Katana.PrimaryPart, Offsets.TorsoSword)
 
     waitFrames(playAnimations and 0 or 0) -- Until sheath is back to original position.
 
     Welding.RemoveWeld(Torso, 'Sheath')
-    Welding.WeldParts('Sheath', self.Instance.Katana.Hitbox, self.Instance.Sheath, Offsets.SwordSheath)
+    Welding.WeldParts('Sheath', self.Instance.Katana.PrimaryPart, self.Instance.Sheath, Offsets.SwordSheath)
 
     Knit.Shared.Cooldown:Set(self:GetCoolKey('EQUIP'), 1)
 end
@@ -283,7 +283,7 @@ function Sword:DeinitializeSword(Character)
     local RightArm = Character:FindFirstChild('Right Arm')
     local Torso = Character:FindFirstChild('Torso')
 
-    self.Instance.Katana.Hitbox:SetNetworkOwnershipAuto();
+    self.Instance.Katana.PrimaryPart:SetNetworkOwnershipAuto();
 
     -- Welds broken already.
     if (not RightArm or not Torso) then
@@ -343,7 +343,7 @@ function Sword:InitializeSword()
     self:Unequip(false, true)
 
     local _,_,_,HitboxManager = GrabModules()
-    self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.Hitbox);
+    self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.PhysicalHitbox);
 
     self._maid:GiveTask(self.Signals.HitStop:Connect(function()
         for i = 1, #self.TemporaryMoveInfo.HitCools do
@@ -377,7 +377,7 @@ function Sword:InitializeSword()
     end)
 
     if (not self.NPC) then
-        self.Instance.Katana.Hitbox:SetNetworkOwner(self.CurrentOwner);
+        self.Instance.Katana.PrimaryPart:SetNetworkOwner(self.CurrentOwner);
     end
 
 end

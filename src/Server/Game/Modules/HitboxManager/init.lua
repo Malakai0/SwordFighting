@@ -16,7 +16,6 @@ function HitboxManager.ApplyHitboxToCharacter(Character: Model)
     local Humanoid: Humanoid = Character:WaitForChild'Humanoid';
 
     local Welding = Knit.Shared.Welding;
-    local HashLib = Knit.Shared.HashLib;
 
     local HitboxModel = game:GetService("ServerStorage").Assets.Hitbox;
 
