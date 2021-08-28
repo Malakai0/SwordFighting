@@ -345,13 +345,6 @@ function Sword:InitializeSword()
     local _,_,_,HitboxManager = GrabModules()
     self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.PhysicalHitbox);
 
-    self._maid:GiveTask(self.Signals.HitStop:Connect(function()
-        for i = 1, #self.TemporaryMoveInfo.HitCools do
-            Knit.Shared.Cooldown:ForceRemove(self.TemporaryMoveInfo.HitCools[1]);
-            table.remove(self.TemporaryMoveInfo.HitCools, 1)
-        end
-    end))
-
     local ClientService = Knit.Services.ClientService;
 
     self.Hitbox:OnHit(function(MoveKey, CollidePart, HitCool)
@@ -371,7 +364,6 @@ function Sword:InitializeSword()
         end
 
         Knit.Shared.Cooldown:Set(Key, HitCool);
-        table.insert(self.TemporaryMoveInfo.HitCools, Key);
 
         self:OnHit(MoveKey, CollidePart);
     end)

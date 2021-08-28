@@ -30,7 +30,9 @@ function Hitbox:HitStart(Key, HitCool, ...)
     local Cast = Knit.Modules.ClientCast;
     self.MoveKey = Key;
 
-    if (not self.Object) then
+    if (self.Object) then
+        self.Object:Stop();
+    else
         self.Object = Cast.new(self.Mechanism, self.Params)
     end
     
@@ -75,21 +77,9 @@ function Hitbox:HitStart(Key, HitCool, ...)
             end
         end)
 
-        local Removed = 0;
-        for i,v in next, self.Connections do
-            if (type(v.Function) ~= 'function') then
-                v.Function = nil;
-                v.ID = nil;
-                v = nil;
-                table.remove(self.Connections, i - Removed);
-                Removed += 1;
-                continue
-            end
-            coroutine.wrap(v.Function)(
-                self.MoveKey, Character:FindFirstChild(PartName), HitCool
-            )
+        for _,v in next, self.Connections do
+            task.spawn(v.Function, Key, Character:FindFirstChild(PartName), HitCool)
         end
-        Removed = nil;
     end);
 
     local Params: RaycastParams = self.Params
@@ -97,13 +87,11 @@ function Hitbox:HitStart(Key, HitCool, ...)
     Params.FilterDescendantsInstances = {workspace.Entities.Hitboxes};
     self.Params = Params
 
-    self.Object.RaycastParams = Params;
-
-    self.Object:Stop();
-    return self.Object:Start(...)
+    self.Object:EditRaycastParams(Params);
+    return self.Object:Start(HitCool, ...)
 end
 
-function Hitbox:HitStop(...)
+function Hitbox:HitStop()
     self.MoveKey = nil;
     if (self.Object) then
         self.Object:Stop()
@@ -135,6 +123,11 @@ function Hitbox:Disconnect(ID)
 end
 
 function Hitbox:Destroy()
+
+    if (self.Object) then
+        self.Object:Destroy()
+    end
+
     for i,v in next, self.Connections do
         if not (type(v) == 'table') then continue end;
         if (not v.ID) then continue end;
