@@ -109,7 +109,7 @@ function module.CheckCall(Player, Key)
 	if (SecondsOutOfSync < 25) then
 		return true
 	else
-		warn(string.format('%s is out of sync by %.3f seconds.', Player.Name, SecondsOutOfSync));
+		warn(string.format('%s is out of sync.', Player.Name));
 		return false
 	end
 end

@@ -68,19 +68,21 @@ local CollisionBaseName = {
 	HumanoidCollided = 'Humanoid'
 }
 
-local limiter = {};
+local RateLimiter = {};
 
 function ClientCaster:Start()
 	self.Disabled = false
 
 	self.Raycast.RaycastParams = self.RaycastParams
 
+	local DetectionCooldown = self.HitCool or 0.05;
+
 	self.Raycast.OnHit:Connect(function(part, humanoid, raycastResult, groupName)
-		if (not limiter[part]) then
-			limiter[part] = 0;
+		if (not RateLimiter[part]) then
+			RateLimiter[part] = 0;
 		end
-		if raycastResult and (tick() - limiter[part] >= 0.05) then
-			limiter[part] = tick();
+		if raycastResult and (tick() - RateLimiter[part] >= DetectionCooldown) then
+			RateLimiter[part] = tick();
 
 			local Character = game:GetService'Players'.LocalPlayer.Character
 			if (not Character) then return end;
@@ -89,7 +91,6 @@ function ClientCaster:Start()
 			if (Relative.Magnitude > 32767 or Relative.Magnitude < -32768) then return end; --// Limitations of Vector3int16
 			local Position = Vector3int16.new(Relative.X, Relative.Y, Relative.Z);
 
-			print('Detected hit reg on the client.')
 			shared.Fire('Replication', self.Id, 'Any', part, Position);
 
 			local ModelAncestor = part:FindFirstAncestorOfClass('Model')
@@ -125,7 +126,7 @@ function ClientCaster:__index(Index)
 	return rawget(ClientCaster, Index)
 end
 
-function ClientCast.new(Object, RaycastParameters, Id)
+function ClientCast.new(Object, RaycastParameters, Id, HitCool)
 	AssertType(Object, 'Instance', 'Unexpected argument #1 to \'CastObject.new\' (%s expected, got %s)')
 
 	local HitboxObject = RCHB.new(Object);
@@ -139,6 +140,7 @@ function ClientCast.new(Object, RaycastParameters, Id)
 		Object = Object,
 		Disabled = true,
 		Recursive = false,
+		HitCool = HitCool;
 
 		_CollidedEvents = {
 			Humanoid = {},
@@ -159,7 +161,7 @@ ReplicationRemote.OnClientEvent:Connect(function(Status, Data, AdditionalData)
 		local Caster = ClientCasters[Data.Id]
 
 		if not Caster then
-			Caster = ClientCast.new(Data.Object, DeserializeParams(Data.RaycastParams), Data.Id)
+			Caster = ClientCast.new(Data.Object, DeserializeParams(Data.RaycastParams), Data.Id, Data.HitCool)
 
 			ClientCasters[Data.Id] = Caster
 			Caster._Debug = Data.Debug

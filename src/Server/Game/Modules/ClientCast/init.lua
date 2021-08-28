@@ -15,8 +15,10 @@ if Settings.AutoSetup then
 end
 
 ClientCast.Settings = Settings
-ClientCast.InitiatedCasters = {}
+ClientCast.InitiatedCasters = {};
 ClientCast.WhitelistedIds = {};
+ClientCast.CasterDetectionCooldowns = {};
+ClientCast.CompensationCasters = {}; -- for laggier players.
 
 local RunService = game:GetService('RunService')
 local ReplicatedStorage = game:GetService('ReplicatedStorage')
@@ -106,49 +108,66 @@ function ReplicationBase:Start()
 	local Owner = self.Owner
 	AssertClass(Owner, 'Player')
 
-	ClientCast.WhitelistedIds[self.Caster._UniqueId] = Owner;
-
 	ReplicationRemote:FireClient(Owner, 'Start', {
 		Owner = Owner,
 		Object = self.Object,
 		Debug = self.Caster._Debug,
 		RaycastParams = SerializeParams(self.RaycastParams),
-		Id = self.Caster._UniqueId
+		Id = self.Caster._UniqueId,
+		HitCool = self.HitCooldown
 	})
 end
 
 shared.RemoteHandler.AddConnection('Replication', function(Player, UniqueId, Code, Part, Position, Humanoid)
 	if (not Player.Character) then return end;
 	if (not UniqueId or not Code or not Part or not Position) then return end;
+	if (typeof(Position) ~= 'Vector3int16' or typeof(Part) ~= 'Instance') then return end;
+	if (not Part:IsA('BasePart')) then return end;
 
-	if ClientCast.WhitelistedIds[UniqueId] == Player and (Code == 'Any' or Code == 'Humanoid') and (ClientCast.InitiatedCasters[UniqueId]) then
-		if (typeof(Position) ~= 'Vector3int16' or typeof(Part) ~= 'Instance') then return end;
-		if (not Part:IsA('BasePart')) then return end;
+	local OnCool = false;
 
+	local Caster = ClientCast.InitiatedCasters[UniqueId];
+	if (not Caster) then return end;
+
+	local HasCooldown = ClientCast.CasterDetectionCooldowns[UniqueId] ~= nil;
+
+	if (HasCooldown and Caster.HitCool) then
+		OnCool = tick() - (ClientCast.CasterDetectionCooldowns[UniqueId][Player.UserId] or -math.huge) < Caster.HitCool;
+	end
+
+	local ValidCode = (Code == 'Any' or Code == 'Humanoid');
+	local isWhitelisted = table.find(ClientCast.WhitelistedIds, UniqueId);
+
+	if isWhitelisted and ValidCode and (not OnCool) then
 		local PlayerPosition = Player.Character.HumanoidRootPart.Position;
 		local Extra = 10; --// Give em lenience!
-		local Caster = ClientCast.InitiatedCasters[UniqueId];
 
 		local GivenOffset = Vector3.new(Position.X, Position.Y, Position.Z);
 		local GivenPosition = (PlayerPosition + GivenOffset);
 
-		local GivenDistance = (GivenOffset.Magnitude + Caster.Object.Size.Magnitude)
-		local ActualDistance = ((PlayerPosition - Caster.Object.Position).Magnitude + Caster.Object.Size.Magnitude)
+		local Object = Caster.Object;
 
-		if (GivenDistance > ActualDistance + Caster.Object.Velocity.Magnitude + Extra) then
+		local GivenDistance = (GivenOffset.Magnitude + Object.Size.Magnitude)
+		local ActualDistance = ((PlayerPosition - Object.Position).Magnitude + Object.Size.Magnitude)
+
+		if (GivenDistance > ActualDistance + Object.Velocity.Magnitude + Extra) then
 			return
 		end
 
 		if (ActualDistance - GivenDistance > 20) then
 			return
 		end
+
+		if (HasCooldown) then
+			ClientCast.CasterDetectionCooldowns[UniqueId][Player.UserId] = tick();
+		end
 		
 		Humanoid = Code == 'Humanoid' and Humanoid
 		for Event in next, Caster._CollidedEvents[Code] do
 			task.spawn(Event.Invoke, Event, Part, GivenPosition, Humanoid)
 		end
-	elseif (not ClientCast.WhitelistedIds[UniqueId]) then
-		warn(Player.Name .. ' sent invalid whitelist.')
+	elseif (not isWhitelisted) then
+		warn(string.format('%s sent invalid whitelist (%s).', Player.Name, tostring(UniqueId)))
 	end
 end)
 
@@ -171,8 +190,6 @@ function ReplicationBase:Stop(Destroy)
 		Id = self.Caster._UniqueId
 	})
 
-	ClientCast.WhitelistedIds[self.Caster._UniqueId] = nil;
-
 	local ReplicationConn = self.Connection
 	if ReplicationConn then
 		ReplicationConn:Disconnect()
@@ -192,8 +209,6 @@ function Replication.new(Player, Object, RaycastParameters, Caster)
 	AssertClass(Player, 'Player', 'Unexpected owner in \'ReplicationBase.Stop\' (%s expected, got %s)')
 	assert(type(Caster) == 'table' and Caster._Class == 'Caster', 'Unexpect argument #4 - Caster expected')
 	
-	ClientCast.WhitelistedIds[Caster._UniqueId] = Player;
-
 	return setmetatable({
 		Owner = Player,
 		Object = Object,
@@ -245,10 +260,15 @@ local CollisionBaseName = {
 	HumanoidCollided = 'Humanoid'
 }
 
-function ClientCaster:Start()
+function ClientCaster:Start(optional_hit_cooldown)
 	self.Disabled = false
 
-	ClientCast.WhitelistedIds[self._UniqueId] = true
+	if (optional_hit_cooldown) then
+		ClientCast.CasterDetectionCooldowns[self._UniqueId] = {};
+		self.HitCooldown = optional_hit_cooldown;
+	end
+
+	table.insert(ClientCast.WhitelistedIds, self._UniqueId);
 	self.Raycast.RaycastParams = self.RaycastParams;
 
 	self.RaycastConnection = self.Raycast.OnHit:Connect(function(part, humanoid, raycastResult, groupName)
@@ -281,7 +301,13 @@ function ClientCaster:Destroy()
 	end
 
 	self.Raycast:Destroy()
-	ClientCast.InitiatedCasters[self._UniqueId] = nil;
+
+	-- Let clients catch up before fully removing the global reference to it.
+	task.delay(3, function()
+		ClientCast.CasterDetectionCooldowns[self._UniqueId] = nil;
+		table.remove(ClientCast.WhitelistedIds, table.find(ClientCast.WhitelistedIds, self._UniqueId));
+		ClientCast.InitiatedCasters[self._UniqueId] = nil;
+	end)
 
 	for Prop, Val in next, self do
 		if type(Val) == 'function' then
@@ -291,13 +317,24 @@ function ClientCaster:Destroy()
 end
 
 function ClientCaster:Stop()
+
+	if self.Disabled then
+		return
+	end
+
 	local OldConn = self._ReplicationConnection
 	if OldConn then
 		OldConn:Stop()
 	end
 
 	self.Raycast:HitStop();
-	ClientCast.WhitelistedIds[self._UniqueId] = false;
+	
+	local uniqueId = self._UniqueId;
+	-- We're letting the client catch up here.
+	task.delay(3, function()
+		table.remove(ClientCast.WhitelistedIds, table.find(ClientCast.WhitelistedIds, uniqueId));
+		ClientCast.CasterDetectionCooldowns[uniqueId] = nil;
+	end)
 
 	self.Disabled = true
 end
@@ -353,6 +390,7 @@ function ClientCaster:GetObject()
 end
 function ClientCaster:EditRaycastParams(RaycastParameters)
 	self.RaycastParams = RaycastParameters
+	self.Raycast.RaycastParams = RaycastParameters
 	local ReplicationConnection = self._ReplicationConnection
 	if ReplicationConnection then
 		local Remainder = time() - self._Created
