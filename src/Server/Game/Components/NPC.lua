@@ -43,8 +43,11 @@ function NPC:Update()
         end
 
         if (tick() - self.DiedAt < self.RespawnTime) then return end;
+        if (self.Respawning) then return end;
         
         --// Respawn NPC.
+
+        self.Respawning = true;
 
         local NewModel = NPCPrefabs:FindFirstChild(self.Instance:GetAttribute('NPCType') or 'N/A'):Clone();
         NewModel:WaitForChild'Humanoid'.Health = NewModel.Humanoid.MaxHealth;
@@ -55,6 +58,7 @@ function NPC:Update()
         self.Instance = NewModel;
         NewModel:SetPrimaryPartCFrame(self.InitialPosition);
 
+        self.Respawning = false;
         return;
     end
 

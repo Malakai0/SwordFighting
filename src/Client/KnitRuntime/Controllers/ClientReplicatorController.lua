@@ -2,14 +2,14 @@ local Knit = require(game:GetService("ReplicatedStorage").Knit)
 
 local Replicator = Knit.CreateController { Name = "Replicator" }
 
-local Event = game:GetService("ReplicatedStorage"):WaitForChild('Replicator')
-
 function Replicator:AddEvent(Key, Function)
     self.Events[Key] = Function;
 end
 
 function Replicator:KnitInit()
     self.Events = {};
+    local Event = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Replicator")
+    
     Event.OnClientEvent:Connect(function(Key, ...)
         local Function = self.Events[Key]
         if (Function) then
