@@ -6,7 +6,7 @@ local ReplicatorService = Knit.CreateService {
     Client = {};
 }
 
-local Event: RemoteEvent = game:GetService("ReplicatedStorage").Replicator;
+local Event: RemoteEvent = game:GetService("ReplicatedStorage").Remotes.Replicator;
 
 function ReplicatorService:FireOnServer(Client, Key, ...)
     local Func = Knit.Shared.ClientFunctions[Key];

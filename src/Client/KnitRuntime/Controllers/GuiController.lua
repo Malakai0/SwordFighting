@@ -100,7 +100,7 @@ function GuiController:KnitStart()
         self:InitPlayerStateGui()
     end);
 
-    self:InitLoadingGui()
+    task.spawn(function() self:InitLoadingGui() end)
     self:InitPlayerStateGui()
 
 end
