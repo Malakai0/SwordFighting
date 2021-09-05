@@ -1,11 +1,10 @@
 local module = {}
 
-module.NumEventHandlers = 7; --// Number of event handlers. Reduces remote throttling.
+module.NumEventHandlers = 10; --// Number of event handlers. Reduces remote throttling.
 
 module.Called = {};
 
 module.Remotes = {};
-module.RemoteKeys = {};
 
 module.Connections = {};
 
@@ -44,15 +43,15 @@ local function DecodeValue(Player, Value, Recursive)
 		if (TypeString == 'table') then
 			return Recursive(Player, Value[4]);
 		else
-			
+
 			if (type(Value[4]) ~= 'string') then
 				Player:Kick('Error Code 3')
 			end
-			
+
 			if (not Value[4]:find('^')) then
 				Player:Kick('Error Code 4')
 			end
-			
+
 			local DecodedValue = MD5.Decode(Value[4]:split('^')[2])
 
 			if (TypeString == 'string') then
@@ -95,7 +94,7 @@ end
 function module.GetValidKey(ProjectedTime)
 	local RemoteLib = require(SharedRemote)
 	local Clock = RemoteLib:DynamicClock(ProjectedTime)
-	
+
 	--// While this key is shared on the client/server, it is only the first layer of protection.
 	return (Clock * 5.343 % 50) * 2.21243;
 end
@@ -136,7 +135,6 @@ function module.CreateRemote(Name, Callback, Type)
 		Remote.Parent = SharedRemote;
 
 		module.Remotes[Name] = Remote;
-		module.RemoteKeys[Remote] = Name;
 
 		resolve()
 	end)
@@ -163,14 +161,14 @@ function module.AddConnection(Name, Function)
 			FakeRemote.Parent = FakeRemotes
 		end
 	end)
-	
+
 	module.Connections[Name] = Function;
-	
+
 	for Index, _ in next, module.Info.PlayerEventKeys do
 		local randomizedKey = tostring(math.random()*150000)
 		local Encrypted = Hashing.SHA256(randomizedKey);
 		module.Info.PlayerEventKeys[Index][Encrypted:sub(1, 12)] = Name;
-		
+
 		Promise.async(function(resolve, reject)
 			local new_tbl = module.GetClientExposedKeys(Index)
 			local ok, res = pcall(module.FireClient, Index, 'CON', new_tbl)
@@ -193,7 +191,7 @@ function module.UpdateEvent(Player, Event)
 
 	local RandomKey = tostring(math.random()*150000)
 	local EncryptedKey = Hashing.SHA256(RandomKey):sub(1, 12)
-	
+
 	--table.insert(module.Info.PlayerEventKeys[Player], EncryptedKey)
 	module.Info.PlayerEventKeys[Player][EncryptedKey] = Event;
 	module.Info.PlayerUsableKeys[Player][EncryptedKey] = Event;
@@ -203,7 +201,7 @@ end
 
 function module.UpdateAndApplyEvent(Player, Event)
 	local EncryptedKey = module.UpdateEvent(Player, Event)
-	
+
 	local Count = 0;
 	local KeyIndex;
 	for Index, Key in next, module.Info.PlayerUsableKeys[Player] do
@@ -212,11 +210,11 @@ function module.UpdateAndApplyEvent(Player, Event)
 		end
 		Count += 1
 	end
-	
+
 	if (Count > 100) then
 		module.Info.PlayerUsableKeys[KeyIndex] = nil;
 	end
-	
+
 	return EncryptedKey
 end
 
@@ -270,7 +268,7 @@ function module.EventFunction(RemoteKey, Player, Arguments)
 		local UpdatedKey = module.UpdateAndApplyEvent(Player, ActualEvent)
 
 		table.remove(Arguments, 1);table.remove(Arguments, 1);
-		
+
 		return 'SUCCESS', UpdatedKey, module.Connections[ActualEvent](Player, unpack(Arguments))
 	else
 		warn('Invalid call by ' .. Player.Name)
@@ -285,7 +283,7 @@ function module.Initialize()
 		local Function = Instance.new('RemoteFunction')
 		Function.Name = 'Ping'
 		Function.OnServerInvoke = function(player, optional_argument)
-			if (optional_argument == MD5.Encode('#ChariotAntiCheat')) then
+			if (optional_argument == MD5.Encode('#ChariotAntiCheat'):sub(1,6)) then
 				return module.NumEventHandlers;
 			end
 			return tick()
@@ -293,17 +291,17 @@ function module.Initialize()
 		Function.Parent = FakeRemotes;
 		resolve()
 	end)
-	
+
 	for i = 1, module.NumEventHandlers do
 		local Key = 'EVENT' .. i;
 		module.CreateRemote(Key, function(...)
-			module.EventFunction(Key, ...)
+			return module.EventFunction(Key, ...)
 		end)
 	end
-	
+
 	module.CreateRemote('TICKET', function(Player, Arguments)
 		if (type(Arguments) ~= 'table') then return end;
-		
+
 		Arguments = DecodeData(Player, Arguments)
 
 		if (#Arguments < 1) then
@@ -311,7 +309,7 @@ function module.Initialize()
 		end
 
 		local TicketID = Arguments[1]
-		
+
 		if (TicketID == 'CON') then
 			if (module.Called[Player]) then
 				Player:Kick('Error Code 5')
@@ -320,7 +318,7 @@ function module.Initialize()
 				for Name, _ in next, module.Connections do
 					module.UpdateEvent(Player, Name);
 				end
-				
+
 				return module.GetClientExposedKeys(Player);
 			end
 		end
@@ -329,15 +327,15 @@ function module.Initialize()
 	module.CreateRemote('CLIENT', function(Player)
 		Player:Kick('Error Code 6')
 	end, 'RemoteEvent'); -- Client Connections.
-	
+
 	game:GetService("Players").PlayerAdded:Connect(function(Player: Player)
-		
+
 		repeat task.wait() until Player.Character or Player.CharacterAdded:Wait();
-		
+
 		for Name, _ in next, module.Connections do
 			module.UpdateEvent(Player, Name);
 		end
-		
+
 		module.FireClient(Player, 'CON', module.GetClientExposedKeys(Player))
 	end)
 
@@ -350,7 +348,7 @@ function module.Initialize()
 	end)
 
 	Promise.async(function()
-		while task.wait() do
+		while task.wait(.5) do
 			for Name, Remote in next, module.Remotes do
 				Remote.Name = Hashing.SHA256(module.GenerateName(Name));
 			end
@@ -368,16 +366,16 @@ function module.ImpenetrableAntiCheat()
 			'Workspace', 'ReplicatedStorage', 'StarterGui', 'StarterPack', 'Players', 'SoundService',
 			'Lighting', 'Teams', 'StarterPlayer', 'ReplicatedFirst'
 		}
-		
+
 		local function Iterate()
 			Index = Index + 1;
 			return Services[Index]
 		end
-		
+
 		return Iterate
 	end
-	
-	
+
+
 	for Service in ServiceIterator() do
 		local Success, ServiceInstance = pcall(game.GetService, game, Service)
 		if (Success) then

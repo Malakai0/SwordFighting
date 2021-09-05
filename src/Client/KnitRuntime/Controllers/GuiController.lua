@@ -16,7 +16,7 @@ function GuiController:InitLoadingGui()
             break
         end
 
-        task.wait(.2)
+        task.wait(.5)
     until nil
     
     task.wait(1)

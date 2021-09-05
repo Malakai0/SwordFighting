@@ -59,12 +59,14 @@ local function BuildService(serviceName: string, folder: Instance): Service
 		for _,rf in ipairs(rfFolder:GetChildren()) do
 			if rf:IsA("RemoteFunction") then
 				local function StandardRemote(_self, ...)
-					return Ser.DeserializeArgsAndUnpack(rf:InvokeServer(Ser.SerializeArgsAndUnpack(...)))
+					return Ser.DeserializeArgsAndUnpack(shared.Invoke(rf.Name, Ser.SerializeArgsAndUnpack(...)))
 				end
 				local function PromiseRemote(_self, ...)
 					local args = Ser.SerializeArgs(...)
 					return Promise.new(function(resolve)
-						resolve(Ser.DeserializeArgsAndUnpack(rf:InvokeServer(table.unpack(args, 1, args.n))))
+						local Args = Ser.SerializeArgsAndUnpack(table.unpack(args, 1, args.n));
+						resolve(Ser.DeserializeArgsAndUnpack(shared.Invoke(rf.Name, Args)))
+						Args = nil;
 					end)
 				end
 				service[rf.Name] = StandardRemote

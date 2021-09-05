@@ -1,7 +1,5 @@
 local Knit = require(game:GetService("ReplicatedStorage").Knit)
-local Maid = require(Knit.Util.Maid)
-
-local Component = require(Knit.Util.Component);
+local Janitor = require(Knit.Util.Janitor)
 
 local NPCPrefabs = game:GetService("ServerStorage").NPCs
 
@@ -16,7 +14,7 @@ function NPC.new(instance)
         RespawnTime = 5;
         InitialPosition = CFrame.new();
     }, NPC)
-    self._maid = Maid.new()
+    self._janitor = Janitor.new()
     return self
 end
 
@@ -40,7 +38,7 @@ function NPC:Update()
             --// NPC dead!
             self.DiedAt = tick();
             return;
-        end
+        end;
 
         if (tick() - self.DiedAt < self.RespawnTime) then return end;
         if (self.Respawning) then return end;
@@ -53,27 +51,35 @@ function NPC:Update()
         NewModel:WaitForChild'Humanoid'.Health = NewModel.Humanoid.MaxHealth;
         
         NewModel.Parent = self.Instance.Parent;
-        self.Instance:Destroy()
+        self.Instance:Destroy();
 
         self.Instance = NewModel;
         NewModel:SetPrimaryPartCFrame(self.InitialPosition);
 
         self.Respawning = false;
         return;
-    end
+    end;
 
 end
 
 function NPC:Init()
     self:SetupModel();
-    repeat task.wait() until self.Instance:IsDescendantOf(workspace);
-    task.wait(.5)
 
-    self.InitialPosition = self.Instance:GetPrimaryPartCFrame()
+    while true do
+        if self.Instance:IsDescendantOf(workspace) then
+            break;
+        end
 
-    self._maid:GiveTask(game:GetService("RunService").Heartbeat:Connect(function()
-        self:Update()
-    end))
+        workspace.ChildAdded:Wait();
+    end
+
+    task.wait(.5);
+
+    self.InitialPosition = self.Instance:GetPrimaryPartCFrame();
+
+    self._janitor:Add(game:GetService("RunService").Heartbeat:Connect(function()
+        self:Update();
+    end));
 end
 
 
@@ -82,7 +88,7 @@ end
 
 
 function NPC:Destroy()
-    self._maid:Destroy()
+    self._janitor:Cleanup()
 end
 
 

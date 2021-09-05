@@ -1,5 +1,5 @@
 local Knit = require(game:GetService("ReplicatedStorage").Knit)
-local Maid = require(Knit.Util.Maid)
+local Janitor = require(Knit.Util.Janitor)
 
 local ClientSword = {}
 ClientSword.__index = ClientSword
@@ -11,7 +11,7 @@ function ClientSword.new(instance: Model)
     local self = setmetatable({
         Connections = {};
     }, ClientSword)
-    self._maid = Maid.new()
+    self._janitor = Janitor.new()
     return self
 end
 
@@ -48,7 +48,7 @@ function ClientSword:ActivateController()
     end)
 
     table.insert(self.Connections, BeganConnection);
-    self._maid:GiveTask(BeganConnection)
+    self._janitor:Add(BeganConnection)
 end
 
 function ClientSword:DeactivateController()
@@ -63,7 +63,7 @@ end
 
 function ClientSword:Init()
     self:OwnerChanged();
-    self._maid:GiveTask(self.Instance:GetAttributeChangedSignal("Owner"):Connect(function()
+    self._janitor:Add(self.Instance:GetAttributeChangedSignal("Owner"):Connect(function()
         self:OwnerChanged();
     end))
 end
@@ -75,7 +75,7 @@ end
 
 
 function ClientSword:Destroy()
-    self._maid:Destroy()
+    self._janitor:Cleanup()
 end
 
 
