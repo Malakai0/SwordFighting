@@ -1,7 +1,7 @@
 local Players = game:GetService("Players")
 
 local Knit = require(game:GetService("ReplicatedStorage").Knit)
-local Maid = require(Knit.Util.Maid)
+local Janitor = require(Knit.Util.Janitor)
 local Signal = require(Knit.Util.Signal);
 
 local function GrabModules()
@@ -32,13 +32,13 @@ local SwordSlashTimings = {
     };
 
     Stop = {
-        20,
-        20,
-        30
+        15,
+        15,
+        20
     };
 }
 
-function Sword.new(instance)
+function Sword.new()
     local self = setmetatable({
         UID = game:GetService("HttpService"):GenerateGUID();
 
@@ -60,7 +60,7 @@ function Sword.new(instance)
             HitCools = {};
         };
     }, Sword)
-    self._maid = Maid.new()
+    self._janitor = Janitor.new()
     return self
 end
 
@@ -90,10 +90,16 @@ function Sword:NormalAttack(ignoreCool)
 
     local Seconds = SwordSlashTimings.Stop[SwingIndex];
 
-    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(Seconds - (Seconds/10)))
+    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(Seconds - (Seconds/20)))
     self.Signals.HitStart:Fire('NormalAttack')
 
+    local Trail: Trail = self.Instance.Katana.PhysicalHitbox.Trail
+
+    Trail.Enabled = true;
+
     waitFrames(Seconds) -- How long the slash is, with conpensation.
+
+    Trail.Enabled = false;
 
     self.Hitbox:HitStop()
     self.Signals.HitStop:Fire()
@@ -335,7 +341,7 @@ function Sword:InitializeSword()
         return self:SetOwnerId(0)
     end
 
-    self._maid:GiveTask(Humanoid.Died:Connect(function()
+    self._janitor:Add(Humanoid.Died:Connect(function()
         self:SetOwnerId(0);
     end))
 
@@ -400,10 +406,10 @@ end
 function Sword:Init()
     self:OwnerChanged();
     self:DetectCharacter()
-    self._maid:GiveTask(self.Instance:GetAttributeChangedSignal("Owner"):Connect(function()
+    self._janitor:Add(self.Instance:GetAttributeChangedSignal("Owner"):Connect(function()
         self:OwnerChanged();
     end))
-    self._maid:GiveTask(self.Instance:GetPropertyChangedSignal('Parent'):Connect(function()
+    self._janitor:Add(self.Instance:GetPropertyChangedSignal('Parent'):Connect(function()
         self:DetectCharacter()
     end))
 end
@@ -414,7 +420,7 @@ end
 
 
 function Sword:Destroy()
-    self._maid:Destroy()
+    self._janitor:Cleanup()
     if (self.Hitbox) then
         self.Hitbox:Destroy()
         self.Hitbox = nil;

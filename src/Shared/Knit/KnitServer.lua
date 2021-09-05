@@ -159,9 +159,11 @@ function KnitServer.BindRemoteFunction(service: Service, funcName: string, func:
 	rf.Name = funcName
 	service._knit_rf[funcName] = rf
 	AddToRepFolder(service, rf)
-	rf.OnServerInvoke = function(...)
+
+	shared.RemoteHandler.AddConnection(funcName, function(...)
 		return Ser.SerializeArgsAndUnpack(func(service.Client, Ser.DeserializeArgsAndUnpack(...)))
-	end
+	end);
+	
 end
 
 

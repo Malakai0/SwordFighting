@@ -3,7 +3,7 @@ local Preloader = {Queue = {}}
 local ContentProvider = game:GetService("ContentProvider");
 
 --- Returns true if the Instance provided is classified as an Asset by Roblox.
----@param Instance Asset
+---@param Asset Instance
 ---@return boolean IsAsset
 function Preloader:IsAsset(Asset: Instance)
     if (typeof(Asset) ~= 'Instance') then return false end
@@ -13,7 +13,7 @@ function Preloader:IsAsset(Asset: Instance)
 end
 
 --- Adds an Asset to the queue to preload. Internally checks if the Instance is an asset.
----@param Instance Asset
+---@param Asset Instance
 ---@return nil
 function Preloader:AddToQueue(Asset: Instance)
     if (self:IsAsset(Asset)) then
@@ -22,7 +22,7 @@ function Preloader:AddToQueue(Asset: Instance)
 end
 
 --- Adds an Array to the queue. Internally checks each instance.
----@param Array List
+---@param List table
 ---@return nil
 function Preloader:AddArrayToQueue(List: Array)
     for _, Asset: Instance in next, List do
@@ -31,7 +31,7 @@ function Preloader:AddArrayToQueue(List: Array)
 end
 
 --- Preloads all assets and flushes the queue.
----@param function Callback
+---@param Callback function
 ---@return nil
 function Preloader:Preload(Callback)
     for i = 1, #self.Queue do

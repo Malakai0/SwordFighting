@@ -1,6 +1,8 @@
 local Knit = require(game:GetService("ReplicatedStorage").Knit)
 local Component = require(Knit.Util.Component)
 
+repeat task.wait() until shared.WaitForInit and shared.WaitForInit();
+
 Knit.AddControllers(script.Parent.Controllers);
 
 Knit.Modules = {}
