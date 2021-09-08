@@ -4,8 +4,8 @@ local CharState = {}
 CharState.__index = CharState
 
 local SPRINT_TIME = 15; --// In seconds, of course.
-local SPRINT_INCREMENT = 0.2 + (1.8 * math.random()); 
-local SPRINT_UPDATE_FREQUENCY = SPRINT_TIME / (100 * (1 / SPRINT_INCREMENT));
+local SPRINT_INCREMENT = 0.2 + (1.8 * math.random()); --// Make increment random, cause why not?
+local SPRINT_UPDATE_FREQUENCY = SPRINT_TIME / (100 / SPRINT_INCREMENT); --// Interval of time to update the stamina.
 
 CharState.WALK_SPEED = 16;
 CharState.SPRINT_SPEED = 22;

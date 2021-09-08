@@ -15,7 +15,7 @@ local function FramesToSeconds(n)
     return (1/60) * n
 end
 
-local function waitFrames(n)
+local function WaitFrames(n)
     return Knit.Shared.Cooldown:Wait(FramesToSeconds(n))
 end
 
@@ -66,7 +66,7 @@ end
 
 --// Cool shit
 
-function Sword:NormalAttack(ignoreCool)
+function Sword:NormalAttack(ShouldIgnoreCooldown)
     if (not self:CheckCharacter()) then
         return
     end
@@ -75,7 +75,7 @@ function Sword:NormalAttack(ignoreCool)
         return
     end
 
-    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('NormalAttack')) and (not ignoreCool)) then
+    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('NormalAttack')) and (not ShouldIgnoreCooldown)) then
         return
     end
 
@@ -86,18 +86,19 @@ function Sword:NormalAttack(ignoreCool)
     local SwingIndex = self.TemporaryMoveInfo.SwingIndex;
     Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Slash'..SwingIndex, Data.AnimationStates.Active)
 
-    waitFrames(SwordSlashTimings.Start[SwingIndex]) -- Until actual slash begins
+    WaitFrames(SwordSlashTimings.Start[SwingIndex]) -- Until actual slash begins
 
-    local Seconds = SwordSlashTimings.Stop[SwingIndex];
+    local FramesToWait = SwordSlashTimings.Stop[SwingIndex];
+    local WithCompensationOfAnimation = FramesToWait - (FramesToWait/20);
 
-    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(Seconds - (Seconds/20)))
+    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(WithCompensationOfAnimation))
     self.Signals.HitStart:Fire('NormalAttack')
 
     local Trail: Trail = self.Instance.Katana.PhysicalHitbox.Trail
 
     Trail.Enabled = true;
 
-    waitFrames(Seconds) -- How long the slash is, with conpensation.
+    WaitFrames(WithCompensationOfAnimation) -- How long the slash animation is, with conpensation.
 
     Trail.Enabled = false;
 
@@ -143,7 +144,7 @@ function Sword:Equip(playAnimations, ignoreCool)
         Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Equip', Data.AnimationStates.Active)
     end
 
-    waitFrames(playAnimations and 10 or 0) -- Until hand is on handle.
+    WaitFrames(playAnimations and 10 or 0) -- Until hand is on handle.
 
     Welding.RemoveWeld(self.Instance.Katana.PrimaryPart, 'Sheath');
     Welding.WeldParts('Sheath', Torso, self.Instance.Sheath, Offsets.TorsoSheath)
@@ -182,12 +183,12 @@ function Sword:Unequip(playAnimations, ignoreCool)
         Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Unequip', Data.AnimationStates.Active)
     end
 
-    waitFrames(playAnimations and 10 or 0) -- Until sword is in sheath.
+    WaitFrames(playAnimations and 10 or 0) -- Until sword is in sheath.
 
     Welding.RemoveWeld(RightArm, 'Sword')
     Welding.WeldParts('Sword', Torso, self.Instance.Katana.PrimaryPart, Offsets.TorsoSword)
 
-    waitFrames(playAnimations and 0 or 0) -- Until sheath is back to original position.
+    WaitFrames(playAnimations and 0 or 0) -- Until sheath is back to original position.
 
     Welding.RemoveWeld(Torso, 'Sheath')
     Welding.WeldParts('Sheath', self.Instance.Katana.PrimaryPart, self.Instance.Sheath, Offsets.SwordSheath)
@@ -216,22 +217,23 @@ function Sword:OnHit(MoveKey: string, HitPart: BasePart)
     if (Humanoid.Health <= 0) then return end;
 
     local Recipient = Players:GetPlayerFromCharacter(Humanoid.Parent) or Humanoid.Parent;
-    local newHitData = Data.GenerateHitData(MoveKey, self.CurrentOwner, Recipient, Damage);
+    local NewHitData = Data.GenerateHitData(MoveKey, self.CurrentOwner, Recipient, Damage);
 
-    local HurtFunc = function(customDamage: number)
-        Humanoid:TakeDamage(customDamage or newHitData.Damage)
+    local HurtFunc = function(CustomDamage: number)
+        Humanoid:TakeDamage(CustomDamage or NewHitData.Damage)
 
-        Replicator:EffectAll(MoveKey, self.CurrentOwner, Recipient, HitPart, customDamage or newHitData.Damage);
+        Replicator:EffectAll(MoveKey, self.CurrentOwner, Recipient, HitPart, CustomDamage or NewHitData.Damage);
     end
 
     local ServerMove = Knit.Modules.ServerMove;
-    if (ServerMove[MoveKey]) then
-        ServerMove[MoveKey](HurtFunc, self.CurrentOwner, Recipient, newHitData.Damage)
+    local MoveFunction = ServerMove[MoveKey];
+    if (MoveFunction) then
+        MoveFunction(HurtFunc, self.CurrentOwner, Recipient, NewHitData.Damage)
     else
         HurtFunc()
     end;
 
-    HurtFunc = nil;
+    HurtFunc = nil; --// Clear memory.
 end
 
 function Sword:CheckCharacter()
@@ -348,7 +350,7 @@ function Sword:InitializeSword()
     self:Equip(false, true)
     self:Unequip(false, true)
 
-    local _,_,_,HitboxManager = GrabModules()
+    local _, _, _, HitboxManager = GrabModules()
     self.Hitbox = HitboxManager.CreateHitboxForInstance(self.CurrentOwner, self.Instance.Katana.PhysicalHitbox);
 
     local ClientService = Knit.Services.ClientService;

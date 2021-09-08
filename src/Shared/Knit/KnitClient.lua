@@ -64,9 +64,9 @@ local function BuildService(serviceName: string, folder: Instance): Service
 				local function PromiseRemote(_self, ...)
 					local args = Ser.SerializeArgs(...)
 					return Promise.new(function(resolve)
-						local Args = Ser.SerializeArgsAndUnpack(table.unpack(args, 1, args.n));
-						resolve(Ser.DeserializeArgsAndUnpack(shared.Invoke(rf.Name, Args)))
-						Args = nil;
+						local SerializedArgs = Ser.SerializeArgsAndUnpack(table.unpack(args, 1, args.n));
+						resolve(Ser.DeserializeArgsAndUnpack(shared.Invoke(rf.Name, SerializedArgs)))
+						SerializedArgs = nil;
 					end)
 				end
 				service[rf.Name] = StandardRemote
