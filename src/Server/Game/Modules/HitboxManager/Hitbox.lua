@@ -26,12 +26,13 @@ function Hitbox.new(Player: Player, Mechanism: Instance)
     return self
 end
 
-function Hitbox:HitStart(Key, HitCool, ...)
+function Hitbox:HitStart(OnServer: boolean, Key: string, HitCool: number, ...)
     local Cast = Knit.Modules.ClientCast;
     self.MoveKey = Key;
 
     if (self.Object) then
         self.Object:Stop();
+        self.Object.Raycast:HitStop()
     else
         self.Object = Cast.new(self.Mechanism, self.Params)
     end
@@ -40,7 +41,12 @@ function Hitbox:HitStart(Key, HitCool, ...)
         self.Object:SetOwner(self.Player)
     end
 
-    self.Object.Collided:Connect(function(hitPart, Position)
+    if (self.Connection) then
+        self.Connection:Disconnect();
+        self.Connection = nil;
+    end
+
+    self.Connection = self.Object.Collided:Connect(function(hitPart)
         if (not hitPart) then return end;
 
         local CharacterUID, PartName = table.unpack(string.split(hitPart:GetAttribute('Identifier'), '.'));
@@ -58,6 +64,10 @@ function Hitbox:HitStart(Key, HitCool, ...)
         if (not Character) then return end;
         if (not Character:FindFirstChild'Humanoid') then return end;
         if (Character.Humanoid.Health <= 0) then return end;
+
+        if (self.Mechanism:IsDescendantOf(Character)) then
+            return
+        end
 
         local TargetPlayer = game:GetService("Players"):GetPlayerFromCharacter(Character)
 
@@ -88,13 +98,26 @@ function Hitbox:HitStart(Key, HitCool, ...)
     self.Params = Params
 
     self.Object:EditRaycastParams(Params);
+
+    if (OnServer) then
+        self.Object.Raycast:HitStart();
+    end
+
     return self.Object:Start(HitCool, ...)
 end
 
 function Hitbox:HitStop()
     self.MoveKey = nil;
     if (self.Object) then
+        if (self.Object.Raycast) then
+            self.Object.Raycast:HitStop();
+        end
         self.Object:Stop()
+    end
+
+    if (self.Connection) then
+        self.Connection:Disconnect();
+        self.Connection = nil;
     end
 end
 
@@ -124,7 +147,15 @@ end
 
 function Hitbox:Destroy()
 
+    if (self.Connection) then
+        self.Connection:Disconnect();
+        self.Connection = nil;
+    end
+
     if (self.Object) then
+        if (self.Object.Raycast) then
+            self.Object.Raycast:Destroy();
+        end
         self.Object:Destroy()
     end
 
@@ -133,6 +164,7 @@ function Hitbox:Destroy()
         if (not v.ID) then continue end;
         self:Disconnect(v.ID)
     end
+    
     self._maid:Destroy();
 end
 

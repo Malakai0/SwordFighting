@@ -50,7 +50,7 @@ function NPC:Update()
         local NewModel = NPCPrefabs:FindFirstChild(self.Instance:GetAttribute('NPCType') or 'N/A'):Clone();
         NewModel:WaitForChild'Humanoid'.Health = NewModel.Humanoid.MaxHealth;
         
-        NewModel.Parent = self.Instance.Parent;
+        NewModel.Parent = workspace.Entities.NPCs;
         self.Instance:Destroy();
 
         self.Instance = NewModel;
@@ -60,18 +60,34 @@ function NPC:Update()
         return;
     end;
 
+    if (not self.Sword.Equipped) then
+        self.Sword:Equip()
+        return;
+    end
+
+    if (not self.LastSlashed) then
+        self.LastSlashed = tick();
+    end
+
+    if (tick() - self.LastSlashed > 1) then
+        self.LastSlashed = tick()
+        self.Sword:NormalAttack(); --// Awesome!
+    end
 end
 
 function NPC:Init()
-    self:SetupModel();
-
     while true do
-        if self.Instance:IsDescendantOf(workspace) then
+        if (self.Instance:IsDescendantOf(workspace) and self.Instance:FindFirstChild('Humanoid')) then
             break;
         end
 
         workspace.ChildAdded:Wait();
     end
+
+    self:SetupModel();
+
+    self.SwordModel = Knit.Services.SwordService:GiveSwordToNPC(self.Instance);
+    self.Sword = Knit.Services.SwordService:FromInstance(self.SwordModel);
 
     task.wait(.5);
 
@@ -79,7 +95,7 @@ function NPC:Init()
 
     self._janitor:Add(game:GetService("RunService").Heartbeat:Connect(function()
         self:Update();
-    end));
+    end), 'Disconnect');
 end
 
 

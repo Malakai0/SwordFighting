@@ -91,7 +91,9 @@ function Sword:NormalAttack(ShouldIgnoreCooldown)
     local FramesToWait = SwordSlashTimings.Stop[SwingIndex];
     local WithCompensationOfAnimation = FramesToWait - (FramesToWait/20);
 
-    self.Hitbox:HitStart('NormalAttack', FramesToSeconds(WithCompensationOfAnimation))
+    local IsNPC = self.NPC ~= nil;
+
+    self.Hitbox:HitStart(IsNPC, 'NormalAttack', FramesToSeconds(WithCompensationOfAnimation))
     self.Signals.HitStart:Fire('NormalAttack')
 
     local Trail: Trail = self.Instance.Katana.PhysicalHitbox.Trail
@@ -345,7 +347,7 @@ function Sword:InitializeSword()
 
     self._janitor:Add(Humanoid.Died:Connect(function()
         self:SetOwnerId(0);
-    end))
+    end), 'Disconnect')
 
     self:Equip(false, true)
     self:Unequip(false, true)
@@ -408,12 +410,14 @@ end
 function Sword:Init()
     self:OwnerChanged();
     self:DetectCharacter()
+
     self._janitor:Add(self.Instance:GetAttributeChangedSignal("Owner"):Connect(function()
         self:OwnerChanged();
-    end))
+    end), 'Disconnect')
+
     self._janitor:Add(self.Instance:GetPropertyChangedSignal('Parent'):Connect(function()
         self:DetectCharacter()
-    end))
+    end), 'Disconnect')
 end
 
 

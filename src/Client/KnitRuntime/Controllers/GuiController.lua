@@ -11,13 +11,13 @@ function GuiController:InitLoadingGui()
     local LoadingGui = self.PlayerGui:WaitForChild'Loading'
     LoadingGui.Enabled = true;
 
-    repeat
+    while true do
         if (ClientService:IsReady()) then
-            break
+            break;
         end
 
-        task.wait(.5)
-    until nil
+        task.wait(.5);
+    end
     
     task.wait(1)
 

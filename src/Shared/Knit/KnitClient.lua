@@ -12,13 +12,12 @@
 
 --]]
 
-
-type ControllerDef = {
+type Controller = {
 	Name: string,
 	[any]: any,
 }
 
-type Controller = {
+type ControllerDef = {
 	Name: string,
 	[any]: any,
 }

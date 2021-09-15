@@ -11,7 +11,7 @@ ClientService.READY_FOR_CLIENTS = false;
 ClientService.CharacterStates, ClientService.ClientStates = {}, {};
 
 function ClientService:CharacterAdded(Character: Model)
-    repeat wait() until Character:IsDescendantOf(workspace) and Character:FindFirstChild('Torso') and Character:FindFirstChild('Right Arm')
+    repeat task.wait() until Character:IsDescendantOf(workspace) and Character:FindFirstChild('Torso') and Character:FindFirstChild('Right Arm')
 
     local Player = game:GetService("Players"):GetPlayerFromCharacter(Character);
 
@@ -20,7 +20,10 @@ function ClientService:CharacterAdded(Character: Model)
     Character:SetAttribute('UID', game:GetService('HttpService'):GenerateGUID())
     Character.Parent = workspace.Entities.Players;
 
-    Knit.Services.SwordService:GiveSword(Player);
+    Player.Character = Character;
+    Character.PrimaryPart:SetNetworkOwner(Player);
+
+    Knit.Services.SwordService:GiveSwordToPlayer(Player);
 
     Knit.Modules.HitboxManager.ApplyHitboxToCharacter(Character);
 

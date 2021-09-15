@@ -11,7 +11,11 @@ local ValidMoves = {
     'NormalAttack';
 }
 
-function SwordService.Client:Move(Player, MoveKey, ...)
+function SwordService:FromInstance(Sword: Model)
+    return Component.FromTag('Sword'):GetFromInstance(Sword);
+end
+
+function SwordService.Client:Move(Player: Player, MoveKey: string, ...)
     local Sword = self.Server:FindSwordForPlayer(Player)
     if (not Sword) then
         return
@@ -25,7 +29,7 @@ function SwordService.Client:Move(Player, MoveKey, ...)
         return
     end
 
-    local Object = Component.FromTag('Sword'):GetFromInstance(Sword);
+    local Object = self.Server:FromInstance(Sword);
 
     if (Object.Active) then
         return
@@ -38,14 +42,24 @@ function SwordService.Client:Move(Player, MoveKey, ...)
     end
 end
 
-function SwordService:GiveSword(Player: Player)
-    local Character = Player.Character;
-    if (not Character) then return end;
-
+function SwordService:GiveSwordToCharacter(Character: Model)
     local Sword: Model = game:GetService('ServerStorage').Assets.Sword:Clone();
     Sword.Parent = Character;
-    Sword.PrimaryPart:SetNetworkOwner(Player);
-    Sword:SetAttribute('Owner', Player.UserId)
+
+    self:FromInstance(Sword):DetectCharacter();
+
+    return Sword;
+end
+
+function SwordService:GiveSwordToNPC(NPC: Model)
+    return self:GiveSwordToCharacter(NPC);
+end
+
+function SwordService:GiveSwordToPlayer(Player: Player)
+    local Character: Model = Player.Character;
+    if (not Character) then return end;
+
+    return self:GiveSwordToCharacter(Character);
 end
 
 function SwordService:GenerateArgs(Player, MoveKey, ...)

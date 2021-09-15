@@ -48,7 +48,7 @@ function ClientSword:ActivateController()
     end)
 
     table.insert(self.Connections, BeganConnection);
-    self._janitor:Add(BeganConnection)
+    self._janitor:Add(BeganConnection, 'Disconnect')
 end
 
 function ClientSword:DeactivateController()
@@ -58,14 +58,16 @@ function ClientSword:DeactivateController()
         self.Connections[i]:Disconnect();
         table.remove(self.Connections, 1)
     end
+    
     self.Connections = {};
 end
 
 function ClientSword:Init()
     self:OwnerChanged();
+
     self._janitor:Add(self.Instance:GetAttributeChangedSignal("Owner"):Connect(function()
         self:OwnerChanged();
-    end))
+    end), 'Disconnect')
 end
 
 

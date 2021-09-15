@@ -274,7 +274,7 @@ function ClientCaster:Start(optional_hit_cooldown)
 	self.RaycastConnection = self.Raycast.OnHit:Connect(function(part, humanoid, raycastResult, groupName)
 		if raycastResult then
 			for CollisionEvent in next, self._CollidedEvents.Any do
-				CollisionEvent:Invoke(raycastResult.Part, raycastResult.Position)
+				task.spawn(CollisionEvent.Invoke, CollisionEvent, part, raycastResult.Position)
 			end
 	
 			local ModelAncestor = part:FindFirstAncestorOfClass('Model')
@@ -300,7 +300,9 @@ function ClientCaster:Destroy()
 		ReplicationConn:Destroy()
 	end
 
-	self.Raycast:Destroy()
+	if (self.Raycast) then
+		self.Raycast:Destroy()
+	end
 
 	-- Let clients catch up before fully removing the global reference to it.
 	task.delay(3, function()
@@ -397,7 +399,7 @@ function ClientCaster:EditRaycastParams(RaycastParameters)
 
 		task.spawn(function()
 			if Remainder < 1 then
-				wait(1 - Remainder)
+				task.wait(1 - Remainder)
 			end
 			ReplicationConnection:Update({
 				RaycastParams = RaycastParameters

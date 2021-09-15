@@ -77,7 +77,12 @@ function ClientCaster:Start()
 
 	local DetectionCooldown = self.HitCool or 0.05;
 
-	self.Raycast.OnHit:Connect(function(part, humanoid, raycastResult, groupName)
+	if (self.Connection) then
+		self.Connection:Disconnect()
+		self.Connection = nil;
+	end
+
+	self.Connection = self.Raycast.OnHit:Connect(function(part, humanoid, raycastResult, groupName)
 		if (not RateLimiter[part]) then
 			RateLimiter[part] = 0;
 		end
@@ -111,6 +116,11 @@ function ClientCaster:Destroy()
 end
 function ClientCaster:Stop()
 	self.Disabled = true
+
+	if (self.Connection) then
+		self.Connection:Disconnect()
+		self.Connection = nil;
+	end
 
 	self.Raycast:HitStop();
 end

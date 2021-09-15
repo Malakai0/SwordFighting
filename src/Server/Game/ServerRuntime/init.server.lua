@@ -21,9 +21,7 @@ for _,v in next, game:GetService('ReplicatedStorage').Modules:GetChildren() do
     end
 end
 
-Knit.Start():Then(function()
-    print('Server started!')
+Knit.Start():ThenCall(print, 'Server started!'):Catch(warn):Finally(function()
     Component.Auto(script.Parent.Components)
-
     print('Server running version ' .. Knit.Shared.ServerInfo.Version);
-end):Catch(warn);
+end)
