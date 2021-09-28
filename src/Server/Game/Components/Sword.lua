@@ -75,11 +75,13 @@ function Sword:NormalAttack(ShouldIgnoreCooldown)
         return
     end
 
-    if (Knit.Shared.Cooldown:Working(self:GetCoolKey('NormalAttack')) and (not ShouldIgnoreCooldown)) then
+    local Key = 'NextAttack';
+
+    if (Knit.Shared.Cooldown:Working(self:GetCoolKey(Key)) and (not ShouldIgnoreCooldown)) then
         return
     end
 
-    Knit.Shared.Cooldown:Set(self:GetCoolKey('NormalAttack'), 1)
+    Knit.Shared.Cooldown:Set(self:GetCoolKey(Key), 1)
 
     local Replicator, Data, _, _ = GrabModules()
 
@@ -93,12 +95,12 @@ function Sword:NormalAttack(ShouldIgnoreCooldown)
 
     local IsNPC = self.NPC ~= nil;
 
-    self.Hitbox:HitStart(IsNPC, 'NormalAttack', FramesToSeconds(WithCompensationOfAnimation))
-    self.Signals.HitStart:Fire('NormalAttack')
+    self.Hitbox:HitStart(IsNPC, Key, FramesToSeconds(WithCompensationOfAnimation))
+    self.Signals.HitStart:Fire(Key)
 
     local Trail: Trail = self.Instance.Katana.PhysicalHitbox.Trail
 
-    Trail.Enabled = true;
+    Trail.Enabled = true; 
 
     WaitFrames(WithCompensationOfAnimation) -- How long the slash animation is, with conpensation.
 
