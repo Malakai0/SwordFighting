@@ -23,6 +23,7 @@ end
 
 function Effects.DamageIndicator(MoveKey, Part, Damage)
     local WasCritical = Damage >= Knit.Shared.SharedData.BaseDamageValues[MoveKey].CriticalDamage
+    
     local BillboardGui = Instance.new('BillboardGui')
     BillboardGui.Name = Part.Name;
     BillboardGui.AlwaysOnTop = true;

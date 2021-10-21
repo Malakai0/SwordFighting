@@ -68,27 +68,27 @@ end
 
 function Sword:NormalAttack(ShouldIgnoreCooldown)
     if (not self:CheckCharacter()) then
-        return
+        return;
     end
 
     if (not self.Equipped) then
-        return
+        return;
     end
 
-    local Key = 'NextAttack';
+    local Key = 'NormalAttack';
 
     if (Knit.Shared.Cooldown:Working(self:GetCoolKey(Key)) and (not ShouldIgnoreCooldown)) then
-        return
+        return;
     end
 
-    Knit.Shared.Cooldown:Set(self:GetCoolKey(Key), 1)
+    Knit.Shared.Cooldown:Set(self:GetCoolKey(Key), 1);
 
-    local Replicator, Data, _, _ = GrabModules()
+    local Replicator, Data, _, _ = GrabModules();
 
     local SwingIndex = self.TemporaryMoveInfo.SwingIndex;
-    Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Slash'..SwingIndex, Data.AnimationStates.Active)
+    Replicator:FireOnServer(self.CurrentOwner, 'Animator', 'Sword/Slash'..SwingIndex, Data.AnimationStates.Active);
 
-    WaitFrames(SwordSlashTimings.Start[SwingIndex]) -- Until actual slash begins
+    WaitFrames(SwordSlashTimings.Start[SwingIndex]); --// Until actual slash begins
 
     local FramesToWait = SwordSlashTimings.Stop[SwingIndex];
     local WithCompensationOfAnimation = FramesToWait - (FramesToWait/20);
@@ -100,7 +100,7 @@ function Sword:NormalAttack(ShouldIgnoreCooldown)
 
     local Trail: Trail = self.Instance.Katana.PhysicalHitbox.Trail
 
-    Trail.Enabled = true; 
+    Trail.Enabled = true;
 
     WaitFrames(WithCompensationOfAnimation) -- How long the slash animation is, with conpensation.
 
