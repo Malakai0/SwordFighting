@@ -8,25 +8,27 @@ GuiController.PlayerGui = nil;
 function GuiController:InitLoadingGui()
     local ClientService = Knit.GetService('ClientService')
 
-    local LoadingGui = self.PlayerGui:WaitForChild'Loading'
-    LoadingGui.Enabled = true;
+    local LoadingGui = self.PlayerGui:WaitForChild("Loading")
+    LoadingGui.Enabled = true
 
     while true do
         if (ClientService:IsReady()) then
-            break;
+            break
         end
 
-        task.wait(.5);
+        task.wait(.5)
     end
-    
-    task.wait(1)
 
-    LoadingGui.LoadingPhase.Visible = false;
+    --// TODO: Preload stuff (actually load things lol)
 
     task.wait(1)
 
-    LoadingGui.Enabled = false;
-    LoadingGui.LoadingPhase.Visible = true; --// Just for tidy-ness sake.
+    LoadingGui.LoadingPhase.Visible = false
+
+    task.wait(1)
+
+    LoadingGui.Enabled = false
+    LoadingGui.LoadingPhase.Visible = true --// Just for tidy-ness sake.
 end
 
 function GuiController:UpdateHealthGui(Humanoid, Gui)

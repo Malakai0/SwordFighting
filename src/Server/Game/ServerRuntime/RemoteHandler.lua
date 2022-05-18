@@ -361,14 +361,14 @@ end
 
 function module.ImpenetrableAntiCheat()
 	local ServiceIterator = function()
-		local Index = 0;
+		local Index = 0
 		local Services = {
 			'Workspace', 'ReplicatedStorage', 'StarterGui', 'StarterPack', 'Players', 'SoundService',
 			'Lighting', 'Teams', 'StarterPlayer', 'ReplicatedFirst'
 		}
 
 		local function Iterate()
-			Index = Index + 1;
+			Index = Index + 1
 			return Services[Index]
 		end
 
